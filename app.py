@@ -11,6 +11,9 @@ import shutil
 import subprocess
 import uuid
 import re
+import zipfile
+import secrets
+import string
 from pathlib import Path
 from flask import Flask, render_template, request, send_file, Response
 from PIL import Image
@@ -72,6 +75,45 @@ def validate_package_name(package_name):
     return bool(re.match(pattern, package_name.lower()))
 
 
+def generate_password(length=16):
+    """生成随机密码"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+
+def generate_keystore(keystore_path, app_name, store_password, key_password, key_alias='key0'):
+    """使用 keytool 生成签名证书"""
+    # 查找 keytool
+    tools_dir = BASE_DIR / 'tools'
+    jdk_dirs = list((tools_dir / 'jdk').glob('jdk-*'))
+
+    if jdk_dirs:
+        keytool = jdk_dirs[0] / 'bin' / ('keytool.exe' if sys.platform == 'win32' else 'keytool')
+    else:
+        keytool = 'keytool'  # 使用系统 PATH 中的 keytool
+
+    # 生成证书
+    cmd = [
+        str(keytool),
+        '-genkeypair',
+        '-keystore', str(keystore_path),
+        '-alias', key_alias,
+        '-keyalg', 'RSA',
+        '-keysize', '2048',
+        '-validity', '36500',  # 100年有效期
+        '-storepass', store_password,
+        '-keypass', key_password,
+        '-dname', f'CN={app_name}, OU=App, O=App, L=City, ST=State, C=CN',
+        '-storetype', 'PKCS12'
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise Exception(f'生成证书失败: {result.stderr}')
+
+    return True
+
+
 def process_icon(icon_path, build_dir):
     """处理图标，生成各种尺寸"""
     try:
@@ -95,10 +137,30 @@ def process_icon(icon_path, build_dir):
         return str(e)
 
 
-def build_apk(app_name, package_name, url, icon_path):
-    """构建 APK 的生成器函数"""
+def build_apk(app_name, package_name, url, icon_path, existing_keystore=None):
+    """构建 APK 的生成器函数
+
+    existing_keystore: 可选，用户上传的已有证书信息
+        {
+            'path': keystore文件路径,
+            'store_password': 证书密码,
+            'key_alias': 密钥别名,
+            'key_password': 密钥密码
+        }
+    """
     build_id = str(uuid.uuid4())[:8]
     build_dir = OUTPUT_DIR / f'build_{build_id}'
+
+    # 判断是使用已有证书还是生成新证书
+    use_existing = existing_keystore is not None
+    if use_existing:
+        store_password = existing_keystore['store_password']
+        key_password = existing_keystore['key_password']
+        key_alias = existing_keystore['key_alias']
+    else:
+        store_password = generate_password()
+        key_password = store_password  # 使用相同密码简化用户操作
+        key_alias = 'key0'
 
     try:
         # 步骤 1: 验证参数
@@ -122,7 +184,7 @@ def build_apk(app_name, package_name, url, icon_path):
         yield send_done('模板项目复制完成')
 
         # 步骤 3: 处理图标
-        yield send_progress('处理应用图标...', 20)
+        yield send_progress('处理应用图标...', 15)
         time.sleep(0.3)
 
         icon_result = process_icon(icon_path, build_dir)
@@ -132,7 +194,26 @@ def build_apk(app_name, package_name, url, icon_path):
 
         yield send_done('图标处理完成')
 
-        # 步骤 4: 修改配置文件
+        # 步骤 4: 处理签名证书
+        keystore_path = build_dir / 'release.keystore'
+
+        if use_existing:
+            yield send_progress('使用已有证书...', 20)
+            time.sleep(0.3)
+            # 复制用户上传的证书
+            shutil.copy(existing_keystore['path'], keystore_path)
+            yield send_done('证书已加载')
+        else:
+            yield send_progress('生成签名证书...', 20)
+            time.sleep(0.3)
+            try:
+                generate_keystore(keystore_path, app_name, store_password, key_password, key_alias)
+            except Exception as e:
+                yield send_error(f'生成证书失败: {str(e)}')
+                return
+            yield send_done('签名证书生成完成')
+
+        # 步骤 5: 修改配置文件
         yield send_progress('修改应用配置...', 30)
         time.sleep(0.3)
 
@@ -146,10 +227,32 @@ def build_apk(app_name, package_name, url, icon_path):
 '''
         strings_path.write_text(strings_content, encoding='utf-8')
 
-        # 修改 build.gradle 中的包名
+        # 修改 build.gradle 中的包名和签名配置
         gradle_path = build_dir / 'app' / 'build.gradle'
         gradle_content = gradle_path.read_text(encoding='utf-8')
         gradle_content = gradle_content.replace('com.webapk.app', package_name)
+
+        # 添加签名配置
+        signing_config = f'''
+    signingConfigs {{
+        release {{
+            storeFile file('../release.keystore')
+            storePassword '{store_password}'
+            keyAlias '{key_alias}'
+            keyPassword '{key_password}'
+        }}
+    }}
+'''
+        # 在 buildTypes 之前插入签名配置
+        gradle_content = gradle_content.replace(
+            '    buildTypes {',
+            signing_config + '    buildTypes {'
+        )
+        # 给 release buildType 添加签名配置
+        gradle_content = gradle_content.replace(
+            'release {\n            minifyEnabled false',
+            'release {\n            signingConfig signingConfigs.release\n            minifyEnabled false'
+        )
         gradle_path.write_text(gradle_content, encoding='utf-8')
 
         # 修改 AndroidManifest.xml 中的包名
@@ -178,7 +281,7 @@ def build_apk(app_name, package_name, url, icon_path):
 
         yield send_done('配置修改完成')
 
-        # 步骤 5: 执行 Gradle 构建
+        # 步骤 6: 执行 Gradle 构建
         yield send_progress('开始编译 APK (这可能需要几分钟)...', 40)
 
         # 设置 Gradle 环境
@@ -204,7 +307,7 @@ def build_apk(app_name, package_name, url, icon_path):
         print(f"[DEBUG] ANDROID_HOME: {env.get('ANDROID_HOME', 'NOT SET')}")
 
         process = subprocess.Popen(
-            [str(gradle_wrapper), 'assembleDebug', '--no-daemon'],
+            [str(gradle_wrapper), 'assembleRelease', '--no-daemon'],
             cwd=str(build_dir),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -249,25 +352,52 @@ def build_apk(app_name, package_name, url, icon_path):
 
         yield send_done('APK 编译完成')
 
-        # 步骤 6: 复制 APK 到输出目录
-        yield send_progress('准备下载文件...', 98)
+        # 步骤 7: 打包 APK + 证书 + 说明文件为 ZIP
+        yield send_progress('打包下载文件...', 98)
         time.sleep(0.3)
 
-        apk_source = build_dir / 'app' / 'build' / 'outputs' / 'apk' / 'debug' / 'app-debug.apk'
+        apk_source = build_dir / 'app' / 'build' / 'outputs' / 'apk' / 'release' / 'app-release.apk'
         if not apk_source.exists():
             yield send_error('APK 文件未找到，构建可能失败')
             return
 
         # 使用应用名作为文件名
         safe_name = re.sub(r'[^\w\-]', '_', app_name)
-        apk_filename = f'{safe_name}_{build_id}.apk'
-        apk_dest = OUTPUT_DIR / apk_filename
-        shutil.copy(apk_source, apk_dest)
+        zip_filename = f'{safe_name}_{build_id}.zip'
+        zip_path = OUTPUT_DIR / zip_filename
+
+        # 创建说明文件
+        readme_content = f'''===== {app_name} 签名证书信息 =====
+
+请妥善保管此文件夹中的所有文件！
+
+证书文件: release.keystore
+证书密码: {store_password}
+密钥别名: {key_alias}
+密钥密码: {key_password}
+
+重要提示:
+1. 更新APP时必须使用同一个证书签名，否则无法覆盖安装
+2. 如果丢失证书，将无法更新已发布的APP
+3. 建议将整个文件夹备份到安全的地方
+
+证书有效期: 100年
+生成时间: {time.strftime("%Y-%m-%d %H:%M:%S")}
+'''
+
+        # 创建 ZIP 文件
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # 添加 APK
+            zf.write(apk_source, f'{safe_name}.apk')
+            # 添加证书
+            zf.write(keystore_path, 'release.keystore')
+            # 添加说明文件
+            zf.writestr('证书信息-请妥善保管.txt', readme_content)
 
         # 清理构建目录
         shutil.rmtree(build_dir)
 
-        yield send_success(apk_filename)
+        yield send_success(zip_filename)
 
     except Exception as e:
         yield send_error(f'构建过程出错: {str(e)}')
@@ -311,9 +441,9 @@ def build():
 
 @app.route('/download/<filename>')
 def download(filename):
-    """下载 APK"""
+    """下载文件（APK 或 ZIP）"""
     file_path = OUTPUT_DIR / filename
-    if file_path.exists() and file_path.suffix == '.apk':
+    if file_path.exists() and file_path.suffix in ('.apk', '.zip'):
         return send_file(file_path, as_attachment=True)
     return '文件不存在', 404
 

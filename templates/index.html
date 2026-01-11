@@ -216,8 +216,13 @@
         .success-text {
             color: #28a745;
             font-weight: 500;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             font-size: 14px;
+        }
+        .result-hint {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 12px;
         }
         .btn-group {
             display: flex;
@@ -245,6 +250,56 @@
         }
         .form-section.hidden {
             display: none;
+        }
+        .keystore-section {
+            margin: 15px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .keystore-toggle {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            color: #555;
+        }
+        .keystore-toggle input {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+        }
+        .keystore-fields {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .keystore-fields.active {
+            display: block;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+        .form-group.half {
+            flex: 1;
+        }
+        .file-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 12px;
+            background: white;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: border-color 0.3s;
         }
     </style>
 </head>
@@ -278,6 +333,34 @@
                         <span class="icon-hint">点击左侧上传图标<br>建议 512x512 PNG</span>
                     </div>
                 </div>
+
+                <div class="keystore-section">
+                    <label class="keystore-toggle" id="keystoreToggle">
+                        <input type="checkbox" id="useExistingKeystore">
+                        <span>使用已有证书（用于更新APP）</span>
+                    </label>
+                    <div class="keystore-fields" id="keystoreFields">
+                        <div class="form-group">
+                            <label for="keystoreFile">证书文件 (.keystore / .jks)</label>
+                            <input type="file" id="keystoreFile" accept=".keystore,.jks" class="file-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="keystorePassword">证书密码</label>
+                            <input type="password" id="keystorePassword" placeholder="输入证书密码">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label for="keyAlias">密钥别名</label>
+                                <input type="text" id="keyAlias" placeholder="如 key0" value="key0">
+                            </div>
+                            <div class="form-group half">
+                                <label for="keyPassword">密钥密码</label>
+                                <input type="password" id="keyPassword" placeholder="通常与证书密码相同">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn" id="submitBtn">生成 APK</button>
             </form>
         </div>
@@ -291,8 +374,9 @@
 
         <div class="result-section" id="resultSection">
             <p class="success-text">APK 生成成功!</p>
+            <p class="result-hint">下载包含：APK安装包 + 签名证书 + 密码信息</p>
             <div class="btn-group">
-                <a href="#" class="btn btn-success" id="downloadBtn">下载 APK</a>
+                <a href="#" class="btn btn-success" id="downloadBtn">下载 ZIP</a>
                 <button type="button" class="btn btn-secondary" id="resetBtn">返回</button>
             </div>
         </div>
@@ -313,6 +397,22 @@
         const resetBtn = document.getElementById('resetBtn');
         const errorMessage = document.getElementById('errorMessage');
         const submitBtn = document.getElementById('submitBtn');
+
+        const useExistingKeystore = document.getElementById('useExistingKeystore');
+        const keystoreFields = document.getElementById('keystoreFields');
+        const keystoreFile = document.getElementById('keystoreFile');
+        const keystorePassword = document.getElementById('keystorePassword');
+        const keyAlias = document.getElementById('keyAlias');
+        const keyPassword = document.getElementById('keyPassword');
+
+        // 证书选项切换
+        useExistingKeystore.addEventListener('change', function() {
+            if (this.checked) {
+                keystoreFields.classList.add('active');
+            } else {
+                keystoreFields.classList.remove('active');
+            }
+        });
 
         // 图标预览
         iconFile.addEventListener('change', function(e) {
@@ -356,6 +456,26 @@
             formData.append('packageName', document.getElementById('packageName').value);
             formData.append('url', document.getElementById('url').value);
             formData.append('icon', iconFile.files[0]);
+
+            // 添加证书信息（如果选择使用已有证书）
+            if (useExistingKeystore.checked) {
+                if (!keystoreFile.files[0]) {
+                    showError('请选择证书文件');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '生成 APK';
+                    return;
+                }
+                if (!keystorePassword.value) {
+                    showError('请输入证书密码');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '生成 APK';
+                    return;
+                }
+                formData.append('keystore', keystoreFile.files[0]);
+                formData.append('keystorePassword', keystorePassword.value);
+                formData.append('keyAlias', keyAlias.value || 'key0');
+                formData.append('keyPassword', keyPassword.value || keystorePassword.value);
+            }
 
             progressContainer.classList.add('active');
 
