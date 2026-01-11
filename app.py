@@ -432,8 +432,31 @@ def build():
         icon_path = UPLOAD_DIR / icon_filename
         icon.save(icon_path)
 
+        # 处理用户上传的证书
+        existing_keystore = None
+        keystore_file = request.files.get('keystore')
+        if keystore_file:
+            keystore_password = request.form.get('keystorePassword', '').strip()
+            key_alias = request.form.get('keyAlias', 'key0').strip()
+            key_password = request.form.get('keyPassword', '').strip() or keystore_password
+
+            if not keystore_password:
+                return stream_response([send_error('请填写证书密码')])
+
+            # 保存证书文件
+            keystore_filename = f'{uuid.uuid4()}.keystore'
+            keystore_path = UPLOAD_DIR / keystore_filename
+            keystore_file.save(keystore_path)
+
+            existing_keystore = {
+                'path': keystore_path,
+                'store_password': keystore_password,
+                'key_alias': key_alias,
+                'key_password': key_password
+            }
+
         # 返回流式响应
-        return stream_response(build_apk(app_name, package_name, url, icon_path))
+        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore))
 
     except Exception as e:
         return stream_response([send_error(f'服务器错误: {str(e)}')])
