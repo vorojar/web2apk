@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+env/
+venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+tools/
+output/
+uploads/
+*.apk
+
+# Android build
+android-template/.gradle/
+android-template/app/build/
+android-template/build/
+android-template/local.properties
+
+# Temp files
+*.log
+*.tmp
+nul

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页转APK生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+            padding: 25px 30px;
+            width: 100%;
+            max-width: 420px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin-bottom: 4px;
+            color: #555;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        input[type="text"], input[type="url"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .icon-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .icon-upload {
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .icon-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .icon-upload input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .icon-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .icon-preview img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .icon-preview-placeholder {
+            color: #999;
+            font-size: 20px;
+        }
+        .icon-hint {
+            color: #888;
+            font-size: 12px;
+            flex: 1;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 8px;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 5px 20px rgba(108, 117, 125, 0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        }
+        .btn-success:hover:not(:disabled) {
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+        .progress-container {
+            display: none;
+            margin-top: 15px;
+        }
+        .progress-container.active {
+            display: block;
+        }
+        .progress-bar-wrapper {
+            background: #f0f0f0;
+            border-radius: 6px;
+            overflow: hidden;
+            height: 6px;
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-status {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        .progress-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+        }
+        .progress-item:last-child {
+            border-bottom: none;
+        }
+        .progress-item.current {
+            color: #667eea;
+            font-weight: 500;
+        }
+        .progress-item.done {
+            color: #28a745;
+        }
+        .progress-item.error {
+            color: #dc3545;
+        }
+        .progress-icon {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+        }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #667eea;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .result-section {
+            display: none;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .result-section.active {
+            display: block;
+        }
+        .success-text {
+            color: #28a745;
+            font-weight: 500;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-group .btn {
+            flex: 1;
+            margin-top: 0;
+        }
+        .error-message {
+            background: #fff5f5;
+            border: 1px solid #ffcccc;
+            color: #dc3545;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+            font-size: 13px;
+        }
+        .error-message.active {
+            display: block;
+        }
+        .form-section {
+            display: block;
+        }
+        .form-section.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>网页转APK生成器</h1>
+
+        <div class="form-section" id="formSection">
+            <form id="apkForm">
+                <div class="form-group">
+                    <label for="appName">应用名称</label>
+                    <input type="text" id="appName" name="appName" placeholder="例如：我的应用" required>
+                </div>
+                <div class="form-group">
+                    <label for="packageName">包名</label>
+                    <input type="text" id="packageName" name="packageName" placeholder="例如：com.example.myapp" required>
+                </div>
+                <div class="form-group">
+                    <label for="url">网址 URL</label>
+                    <input type="url" id="url" name="url" placeholder="https://example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>应用图标</label>
+                    <div class="icon-row">
+                        <div class="icon-upload" id="iconUpload">
+                            <div class="icon-preview" id="iconPreview">
+                                <span class="icon-preview-placeholder">+</span>
+                            </div>
+                            <input type="file" id="iconFile" accept="image/png,image/jpeg" required>
+                        </div>
+                        <span class="icon-hint">点击左侧上传图标<br>建议 512x512 PNG</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn" id="submitBtn">生成 APK</button>
+            </form>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-status" id="progressStatus"></div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <p class="success-text">APK 生成成功!</p>
+            <div class="btn-group">
+                <a href="#" class="btn btn-success" id="downloadBtn">下载 APK</a>
+                <button type="button" class="btn btn-secondary" id="resetBtn">返回</button>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('apkForm');
+        const formSection = document.getElementById('formSection');
+        const iconFile = document.getElementById('iconFile');
+        const iconPreview = document.getElementById('iconPreview');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressStatus = document.getElementById('progressStatus');
+        const resultSection = document.getElementById('resultSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // 图标预览
+        iconFile.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    iconPreview.innerHTML = `<img src="${e.target.result}" alt="icon">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 返回按钮
+        resetBtn.addEventListener('click', function() {
+            formSection.classList.remove('hidden');
+            resultSection.classList.remove('active');
+            progressContainer.classList.remove('active');
+            errorMessage.classList.remove('active');
+            progressStatus.innerHTML = '';
+            progressBar.style.width = '0%';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '生成 APK';
+        });
+
+        // 表单提交
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // 重置状态
+            progressContainer.classList.remove('active');
+            resultSection.classList.remove('active');
+            errorMessage.classList.remove('active');
+            progressStatus.innerHTML = '';
+            progressBar.style.width = '0%';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '生成中...';
+
+            const formData = new FormData();
+            formData.append('appName', document.getElementById('appName').value);
+            formData.append('packageName', document.getElementById('packageName').value);
+            formData.append('url', document.getElementById('url').value);
+            formData.append('icon', iconFile.files[0]);
+
+            progressContainer.classList.add('active');
+
+            try {
+                const response = await fetch('/build', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            handleProgress(data);
+                        }
+                    }
+                }
+            } catch (error) {
+                showError('连接服务器失败: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = '生成 APK';
+            }
+        });
+
+        function handleProgress(data) {
+            if (data.type === 'progress') {
+                progressBar.style.width = data.percent + '%';
+                addProgressItem(data.message, 'current');
+            } else if (data.type === 'done') {
+                addProgressItem(data.message, 'done');
+            } else if (data.type === 'success') {
+                progressBar.style.width = '100%';
+                formSection.classList.add('hidden');
+                resultSection.classList.add('active');
+                downloadBtn.href = '/download/' + data.filename;
+                addProgressItem('APK 生成完成!', 'done');
+            } else if (data.type === 'error') {
+                showError(data.message);
+                addProgressItem(data.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '生成 APK';
+            }
+        }
+
+        function addProgressItem(message, status) {
+            const currentItems = progressStatus.querySelectorAll('.progress-item.current');
+            currentItems.forEach(item => {
+                item.classList.remove('current');
+                item.classList.add('done');
+                item.querySelector('.progress-icon').innerHTML = '&#10003;';
+            });
+
+            const item = document.createElement('div');
+            item.className = 'progress-item ' + status;
+
+            let icon = '';
+            if (status === 'current') {
+                icon = '<span class="spinner"></span>';
+            } else if (status === 'done') {
+                icon = '&#10003;';
+            } else if (status === 'error') {
+                icon = '&#10007;';
+            }
+
+            item.innerHTML = `<span class="progress-icon">${icon}</span>${message}`;
+            progressStatus.appendChild(item);
+            progressStatus.scrollTop = progressStatus.scrollHeight;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+        }
+    </script>
+</body>
+</html>
