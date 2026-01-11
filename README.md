@@ -2,6 +2,8 @@
 
 一个简单易用的网页转Android APK工具，可以将任意网页打包成Android应用。
 
+![演示截图](snap1.png)
+
 ## 功能特性
 
 - 将任意网址打包成Android APK应用
