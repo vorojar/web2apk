@@ -301,6 +301,95 @@
             font-size: 13px;
             transition: border-color 0.3s;
         }
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: border-color 0.3s;
+            background: white;
+            cursor: pointer;
+        }
+        .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            color: #555;
+            height: 42px;
+            padding: 0 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+        .checkbox-label:hover {
+            border-color: #667eea;
+        }
+        .checkbox-label input {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+        }
+        .color-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        input[type="color"] {
+            width: 42px;
+            height: 42px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 2px;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+        .color-text {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+        .splash-preview {
+            height: 42px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+        .splash-icon {
+            width: 28px;
+            height: 28px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #999;
+            overflow: hidden;
+        }
+        .splash-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
@@ -334,6 +423,48 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="screenOrientation">屏幕方向</label>
+                        <select id="screenOrientation" name="screenOrientation" class="form-select">
+                            <option value="unspecified">自由旋转</option>
+                            <option value="portrait">竖屏锁定</option>
+                            <option value="landscape">横屏锁定</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label>显示模式</label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="fullscreen" name="fullscreen">
+                            <span>全屏沉浸式</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="splashColor">启动画面背景色</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="splashColor" name="splashColor" value="#f8f9fa">
+                            <input type="text" id="splashColorText" value="#f8f9fa" maxlength="7" class="color-text">
+                        </div>
+                    </div>
+                    <div class="form-group half">
+                        <label>启动画面预览</label>
+                        <div class="splash-preview" id="splashPreview">
+                            <div class="splash-icon" id="splashIconPreview">+</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="statusBarColor">状态栏颜色</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="statusBarColor" name="statusBarColor" value="#000000">
+                        <input type="text" id="statusBarColorText" value="#000000" maxlength="7" class="color-text">
+                    </div>
+                </div>
+
                 <div class="keystore-section">
                     <label class="keystore-toggle" id="keystoreToggle">
                         <input type="checkbox" id="useExistingKeystore">
@@ -357,6 +488,10 @@
                                 <label for="keyPassword">密钥密码</label>
                                 <input type="password" id="keyPassword" placeholder="通常与证书密码相同">
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="versionName">版本号</label>
+                            <input type="text" id="versionName" placeholder="如 1.1、2.0" value="1.0">
                         </div>
                     </div>
                 </div>
@@ -414,6 +549,38 @@
             }
         });
 
+        // 颜色选择器
+        const splashColor = document.getElementById('splashColor');
+        const splashColorText = document.getElementById('splashColorText');
+        const splashPreview = document.getElementById('splashPreview');
+        const splashIconPreview = document.getElementById('splashIconPreview');
+
+        splashColor.addEventListener('input', function() {
+            splashColorText.value = this.value;
+            splashPreview.style.background = this.value;
+        });
+
+        splashColorText.addEventListener('input', function() {
+            if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                splashColor.value = this.value;
+                splashPreview.style.background = this.value;
+            }
+        });
+
+        // 状态栏颜色选择器
+        const statusBarColor = document.getElementById('statusBarColor');
+        const statusBarColorText = document.getElementById('statusBarColorText');
+
+        statusBarColor.addEventListener('input', function() {
+            statusBarColorText.value = this.value;
+        });
+
+        statusBarColorText.addEventListener('input', function() {
+            if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                statusBarColor.value = this.value;
+            }
+        });
+
         // 图标预览
         iconFile.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -421,6 +588,8 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     iconPreview.innerHTML = `<img src="${e.target.result}" alt="icon">`;
+                    // 同步更新启动画面预览
+                    splashIconPreview.innerHTML = `<img src="${e.target.result}" alt="icon">`;
                 };
                 reader.readAsDataURL(file);
             }
@@ -456,6 +625,10 @@
             formData.append('packageName', document.getElementById('packageName').value);
             formData.append('url', document.getElementById('url').value);
             formData.append('icon', iconFile.files[0]);
+            formData.append('screenOrientation', document.getElementById('screenOrientation').value);
+            formData.append('fullscreen', document.getElementById('fullscreen').checked ? '1' : '0');
+            formData.append('splashColor', document.getElementById('splashColor').value);
+            formData.append('statusBarColor', document.getElementById('statusBarColor').value);
 
             // 添加证书信息（如果选择使用已有证书）
             if (useExistingKeystore.checked) {
@@ -475,6 +648,7 @@
                 formData.append('keystorePassword', keystorePassword.value);
                 formData.append('keyAlias', keyAlias.value || 'key0');
                 formData.append('keyPassword', keyPassword.value || keystorePassword.value);
+                formData.append('versionName', document.getElementById('versionName').value || '1.0');
             }
 
             progressContainer.classList.add('active');

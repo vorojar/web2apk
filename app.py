@@ -137,7 +137,7 @@ def process_icon(icon_path, build_dir):
         return str(e)
 
 
-def build_apk(app_name, package_name, url, icon_path, existing_keystore=None):
+def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000'):
     """构建 APK 的生成器函数
 
     existing_keystore: 可选，用户上传的已有证书信息
@@ -147,6 +147,11 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None):
             'key_alias': 密钥别名,
             'key_password': 密钥密码
         }
+    screen_orientation: 屏幕方向 ('unspecified', 'portrait', 'landscape')
+    fullscreen: 是否全屏沉浸式模式
+    splash_color: 启动画面背景色 (十六进制颜色值)
+    version_name: 版本号 (显示给用户)
+    status_bar_color: 状态栏颜色 (十六进制颜色值)
     """
     build_id = str(uuid.uuid4())[:8]
     build_dir = OUTPUT_DIR / f'build_{build_id}'
@@ -227,10 +232,25 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None):
 '''
         strings_path.write_text(strings_content, encoding='utf-8')
 
-        # 修改 build.gradle 中的包名和签名配置
+        # 修改 colors.xml (启动画面背景色 + 状态栏颜色)
+        colors_path = build_dir / 'app' / 'src' / 'main' / 'res' / 'values' / 'colors.xml'
+        colors_content = f'''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="splash_background">{splash_color}</color>
+    <color name="status_bar_color">{status_bar_color}</color>
+</resources>
+'''
+        colors_path.write_text(colors_content, encoding='utf-8')
+
+        # 修改 build.gradle 中的包名、版本号和签名配置
         gradle_path = build_dir / 'app' / 'build.gradle'
         gradle_content = gradle_path.read_text(encoding='utf-8')
         gradle_content = gradle_content.replace('com.webapk.app', package_name)
+
+        # 生成 versionCode (基于时间戳，确保递增)
+        version_code = int(time.strftime('%Y%m%d%H'))
+        gradle_content = gradle_content.replace('versionCode 1', f'versionCode {version_code}')
+        gradle_content = gradle_content.replace('versionName "1.0"', f'versionName "{version_name}"')
 
         # 添加签名配置
         signing_config = f'''
@@ -255,10 +275,18 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None):
         )
         gradle_path.write_text(gradle_content, encoding='utf-8')
 
-        # 修改 AndroidManifest.xml 中的包名
+        # 修改 AndroidManifest.xml 中的包名和屏幕方向
         manifest_path = build_dir / 'app' / 'src' / 'main' / 'AndroidManifest.xml'
         manifest_content = manifest_path.read_text(encoding='utf-8')
         manifest_content = manifest_content.replace('com.webapk.app', package_name)
+
+        # 添加屏幕方向设置
+        if screen_orientation != 'unspecified':
+            manifest_content = manifest_content.replace(
+                'android:configChanges="orientation|screenSize|keyboardHidden"',
+                f'android:configChanges="orientation|screenSize|keyboardHidden"\n            android:screenOrientation="{screen_orientation}"'
+            )
+
         manifest_path.write_text(manifest_content, encoding='utf-8')
 
         # 重命名包目录
@@ -272,6 +300,32 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None):
             for f in old_package_dir.glob('*'):
                 content = f.read_text(encoding='utf-8')
                 content = content.replace('package com.webapk.app', f'package {package_name}')
+
+                # 如果启用全屏模式，修改为沉浸式（隐藏系统栏）
+                if fullscreen and f.name == 'MainActivity.kt':
+                    # 添加额外导入
+                    content = content.replace(
+                        'import androidx.core.view.WindowCompat',
+                        'import androidx.core.view.WindowCompat\nimport androidx.core.view.WindowInsetsCompat\nimport androidx.core.view.WindowInsetsControllerCompat'
+                    )
+                    # 替换 hideSplashScreen 中只改颜色的逻辑为隐藏系统栏
+                    content = content.replace(
+                        '// 只改状态栏颜色，不改布局（避免跳动）\n        window.statusBarColor = Color.BLACK',
+                        '''// 全屏模式：隐藏系统栏
+        WindowInsetsControllerCompat(window, window.decorView).let { controller ->
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }'''
+                    )
+                    # 全屏模式不需要给内容区域添加 padding
+                    content = content.replace(
+                        '''// 给内容区域添加顶部 padding = 状态栏高度
+        val statusBarHeight = getStatusBarHeight()
+        swipeRefresh.setPadding(0, statusBarHeight, 0, 0)
+        errorView.setPadding(0, statusBarHeight, 0, 0)''',
+                        '// 全屏模式：不需要 padding'
+                    )
+
                 new_file = new_package_dir / f.name
                 new_package_dir.mkdir(parents=True, exist_ok=True)
                 new_file.write_text(content, encoding='utf-8')
@@ -423,6 +477,10 @@ def build():
         package_name = request.form.get('packageName', '').strip().lower()
         url = request.form.get('url', '').strip()
         icon = request.files.get('icon')
+        screen_orientation = request.form.get('screenOrientation', 'unspecified').strip()
+        fullscreen = request.form.get('fullscreen', '0') == '1'
+        splash_color = request.form.get('splashColor', '#f8f9fa').strip()
+        status_bar_color = request.form.get('statusBarColor', '#000000').strip()
 
         if not all([app_name, package_name, url, icon]):
             return stream_response([send_error('请填写所有必填字段')])
@@ -455,8 +513,13 @@ def build():
                 'key_password': key_password
             }
 
+            # 获取版本号
+            version_name = request.form.get('versionName', '1.0').strip() or '1.0'
+        else:
+            version_name = '1.0'
+
         # 返回流式响应
-        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore))
+        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color))
 
     except Exception as e:
         return stream_response([send_error(f'服务器错误: {str(e)}')])
