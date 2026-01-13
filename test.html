@@ -108,6 +108,10 @@
             background: linear-gradient(135deg, #2980b9 0%, #6dd5fa 100%);
         }
 
+        .btn-audio {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
         .icon {
             font-size: 18px;
         }
@@ -145,6 +149,24 @@
         input[type="file"] {
             display: none;
         }
+
+        .video-container {
+            margin-top: 10px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .video-container video {
+            width: 100%;
+            display: block;
+        }
+
+        .video-hint {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            margin-top: 8px;
+        }
     </style>
 </head>
 
@@ -152,6 +174,20 @@
     <div class="container">
         <h1>📱 WebAPK 功能测试</h1>
 
+        <!-- 视频全屏测试 -->
+        <div class="card">
+            <h2>🎬 视频全屏测试</h2>
+            <div class="video-container">
+                <video controls playsinline>
+                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                        type="video/mp4">
+                    您的浏览器不支持视频播放
+                </video>
+            </div>
+            <div class="video-hint">点击视频全屏按钮测试全屏功能</div>
+        </div>
+
+        <!-- 文件上传测试 -->
         <div class="card">
             <h2>📤 文件上传测试</h2>
             <div class="btn-group">
@@ -179,6 +215,7 @@
             </div>
         </div>
 
+        <!-- 文件下载测试 -->
         <div class="card">
             <h2>📥 文件下载测试</h2>
             <div class="btn-group">
@@ -192,6 +229,9 @@
                 </a>
                 <a href="https://calibre-ebook.com/downloads/demos/demo.docx" class="btn btn-doc">
                     <span class="icon">📝</span> 下载 Word 文档
+                </a>
+                <a href="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" class="btn btn-audio">
+                    <span class="icon">🎵</span> 下载 MP3 音频
                 </a>
                 <a href="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
                     class="btn btn-download">

@@ -137,7 +137,7 @@ def process_icon(icon_path, build_dir):
         return str(e)
 
 
-def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000'):
+def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000', pull_to_refresh=False):
     """构建 APK 的生成器函数
 
     existing_keystore: 可选，用户上传的已有证书信息
@@ -152,6 +152,7 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
     splash_color: 启动画面背景色 (十六进制颜色值)
     version_name: 版本号 (显示给用户)
     status_bar_color: 状态栏颜色 (十六进制颜色值)
+    pull_to_refresh: 是否启用下拉刷新
     """
     build_id = str(uuid.uuid4())[:8]
     build_dir = OUTPUT_DIR / f'build_{build_id}'
@@ -241,6 +242,15 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
 </resources>
 '''
         colors_path.write_text(colors_content, encoding='utf-8')
+
+        # 修改 bools.xml (下拉刷新开关)
+        bools_path = build_dir / 'app' / 'src' / 'main' / 'res' / 'values' / 'bools.xml'
+        bools_content = f'''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="pull_to_refresh_enabled">{'true' if pull_to_refresh else 'false'}</bool>
+</resources>
+'''
+        bools_path.write_text(bools_content, encoding='utf-8')
 
         # 修改 build.gradle 中的包名、版本号和签名配置
         gradle_path = build_dir / 'app' / 'build.gradle'
@@ -479,6 +489,7 @@ def build():
         icon = request.files.get('icon')
         screen_orientation = request.form.get('screenOrientation', 'unspecified').strip()
         fullscreen = request.form.get('fullscreen', '0') == '1'
+        pull_to_refresh = request.form.get('pullToRefresh', '0') == '1'
         splash_color = request.form.get('splashColor', '#f8f9fa').strip()
         status_bar_color = request.form.get('statusBarColor', '#000000').strip()
 
@@ -519,7 +530,7 @@ def build():
             version_name = '1.0'
 
         # 返回流式响应
-        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color))
+        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color, pull_to_refresh))
 
     except Exception as e:
         return stream_response([send_error(f'服务器错误: {str(e)}')])

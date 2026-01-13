@@ -60,6 +60,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var photoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
 
+    // 视频全屏相关
+    private lateinit var fullscreenContainer: FrameLayout
+    private var customView: View? = null
+    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
+    private var originalOrientation: Int = 0
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,6 +83,7 @@ class MainActivity : AppCompatActivity() {
         errorTitle = findViewById(R.id.errorTitle)
         errorMessage = findViewById(R.id.errorMessage)
         retryButton = findViewById(R.id.retryButton)
+        fullscreenContainer = findViewById(R.id.fullscreenContainer)
 
         // 给内容区域添加顶部 padding = 状态栏高度
         val statusBarHeight = getStatusBarHeight()
@@ -143,6 +150,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSwipeRefresh() {
+        // 根据配置启用或禁用下拉刷新
+        val pullToRefreshEnabled = resources.getBoolean(R.bool.pull_to_refresh_enabled)
+        swipeRefresh.isEnabled = pullToRefreshEnabled
+
+        if (!pullToRefreshEnabled) return
+
         swipeRefresh.setOnRefreshListener {
             hideError()
             webView.reload()
@@ -311,6 +324,51 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 return true
+            }
+
+            // 视频全屏播放
+            override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+                if (customView != null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+
+                customView = view
+                customViewCallback = callback
+                originalOrientation = requestedOrientation
+
+                // 隐藏主内容，显示全屏容器
+                swipeRefresh.visibility = View.GONE
+                fullscreenContainer.visibility = View.VISIBLE
+                fullscreenContainer.addView(view)
+
+                // 切换到横屏
+                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
+                // 隐藏系统栏
+                WindowInsetsControllerCompat(window, window.decorView).let { controller ->
+                    controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                }
+            }
+
+            override fun onHideCustomView() {
+                if (customView == null) return
+
+                // 移除全屏视图
+                fullscreenContainer.removeView(customView)
+                fullscreenContainer.visibility = View.GONE
+                swipeRefresh.visibility = View.VISIBLE
+
+                customView = null
+                customViewCallback?.onCustomViewHidden()
+                customViewCallback = null
+
+                // 恢复屏幕方向
+                requestedOrientation = originalOrientation
+
+                // 显示系统栏
+                WindowInsetsControllerCompat(window, window.decorView).show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             }
         }
     }
@@ -518,6 +576,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            // 优先退出视频全屏
+            if (customView != null) {
+                customViewCallback?.onCustomViewHidden()
+                return true
+            }
             if (hasError) {
                 hideError()
                 return true
