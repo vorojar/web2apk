@@ -212,7 +212,27 @@ class MainActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
 
-                // 处理外部链接
+                // 检查是否是需要强制下载的文件类型
+                val downloadExtensions = listOf(
+                    ".mp4", ".mp3", ".wav", ".ogg", ".webm",  // 音视频
+                    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp",  // 图片
+                    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",  // 文档
+                    ".zip", ".rar", ".7z", ".tar", ".gz",  // 压缩包
+                    ".apk", ".exe", ".dmg"  // 安装包
+                )
+                val urlLower = url.lowercase()
+                val isDownloadableFile = downloadExtensions.any { ext -> 
+                    urlLower.endsWith(ext) || urlLower.contains("$ext?") || urlLower.contains("$ext#")
+                }
+
+                if (isDownloadableFile) {
+                    // 强制下载，不让 WebView 打开
+                    val mimeType = getMimeTypeFromUrl(url)
+                    downloadFile(url, webView.settings.userAgentString, "", mimeType)
+                    return true
+                }
+
+                // 处理外部链接（电话、邮件等）
                 return if (url.startsWith("tel:") || url.startsWith("mailto:") ||
                            url.startsWith("sms:") || url.startsWith("intent:")) {
                     try {
@@ -401,6 +421,44 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun getMimeTypeFromUrl(url: String): String {
+        val extension = url.lowercase().substringAfterLast(".").substringBefore("?").substringBefore("#")
+        return when (extension) {
+            // 音视频
+            "mp4" -> "video/mp4"
+            "mp3" -> "audio/mpeg"
+            "wav" -> "audio/wav"
+            "ogg" -> "audio/ogg"
+            "webm" -> "video/webm"
+            // 图片
+            "png" -> "image/png"
+            "jpg", "jpeg" -> "image/jpeg"
+            "gif" -> "image/gif"
+            "webp" -> "image/webp"
+            "bmp" -> "image/bmp"
+            // 文档
+            "pdf" -> "application/pdf"
+            "doc" -> "application/msword"
+            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "xls" -> "application/vnd.ms-excel"
+            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "ppt" -> "application/vnd.ms-powerpoint"
+            "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            // 压缩包
+            "zip" -> "application/zip"
+            "rar" -> "application/x-rar-compressed"
+            "7z" -> "application/x-7z-compressed"
+            "tar" -> "application/x-tar"
+            "gz" -> "application/gzip"
+            // 安装包
+            "apk" -> "application/vnd.android.package-archive"
+            "exe" -> "application/x-msdownload"
+            "dmg" -> "application/x-apple-diskimage"
+            // 默认
+            else -> "application/octet-stream"
         }
     }
 
