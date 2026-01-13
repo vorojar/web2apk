@@ -370,6 +370,44 @@ class MainActivity : AppCompatActivity() {
                 // 显示系统栏
                 WindowInsetsControllerCompat(window, window.decorView).show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             }
+
+            // JS alert() 弹窗
+            override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                AlertDialog.Builder(this@MainActivity)
+                    .setMessage(message)
+                    .setPositiveButton("确定") { _, _ -> result?.confirm() }
+                    .setOnCancelListener { result?.cancel() }
+                    .show()
+                return true
+            }
+
+            // JS confirm() 弹窗
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                AlertDialog.Builder(this@MainActivity)
+                    .setMessage(message)
+                    .setPositiveButton("确定") { _, _ -> result?.confirm() }
+                    .setNegativeButton("取消") { _, _ -> result?.cancel() }
+                    .setOnCancelListener { result?.cancel() }
+                    .show()
+                return true
+            }
+
+            // JS prompt() 弹窗
+            override fun onJsPrompt(view: WebView?, url: String?, message: String?, defaultValue: String?, result: JsPromptResult?): Boolean {
+                val input = android.widget.EditText(this@MainActivity).apply {
+                    setText(defaultValue)
+                    setSingleLine()
+                    setPadding(48, 24, 48, 24)
+                }
+                AlertDialog.Builder(this@MainActivity)
+                    .setMessage(message)
+                    .setView(input)
+                    .setPositiveButton("确定") { _, _ -> result?.confirm(input.text.toString()) }
+                    .setNegativeButton("取消") { _, _ -> result?.cancel() }
+                    .setOnCancelListener { result?.cancel() }
+                    .show()
+                return true
+            }
         }
     }
 

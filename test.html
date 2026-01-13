@@ -161,7 +161,7 @@
             display: block;
         }
 
-        .video-hint {
+        .hint {
             font-size: 12px;
             color: #888;
             text-align: center;
@@ -184,7 +184,24 @@
                     您的浏览器不支持视频播放
                 </video>
             </div>
-            <div class="video-hint">点击视频全屏按钮测试全屏功能</div>
+            <div class="hint">点击视频全屏按钮测试全屏功能</div>
+        </div>
+
+        <!-- JS弹窗测试 -->
+        <div class="card">
+            <h2>💬 JS弹窗测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="testAlert()">
+                    <span class="icon">ℹ️</span> 测试 alert()
+                </button>
+                <button class="btn btn-doc" onclick="testConfirm()">
+                    <span class="icon">❓</span> 测试 confirm()
+                </button>
+                <button class="btn btn-audio" onclick="testPrompt()">
+                    <span class="icon">✏️</span> 测试 prompt()
+                </button>
+            </div>
+            <div class="hint" id="jsResult">点击按钮测试 JS 原生弹窗</div>
         </div>
 
         <!-- 文件上传测试 -->
@@ -246,27 +263,49 @@
     </div>
 
     <script>
+        // JS弹窗测试
+        function testAlert() {
+            alert('这是一个 alert() 弹窗！\n\n如果你看到的是原生样式的弹窗，说明 JS 弹窗支持已启用。');
+            document.getElementById('jsResult').textContent = 'alert() 测试完成';
+        }
+
+        function testConfirm() {
+            var result = confirm('这是一个 confirm() 弹窗。\n\n请选择"确定"或"取消"：');
+            document.getElementById('jsResult').textContent = 'confirm() 返回: ' + (result ? '确定' : '取消');
+        }
+
+        function testPrompt() {
+            var result = prompt('这是一个 prompt() 弹窗。\n\n请输入你的名字：', '访客');
+            if (result !== null) {
+                document.getElementById('jsResult').textContent = 'prompt() 返回: ' + result;
+            } else {
+                document.getElementById('jsResult').textContent = 'prompt() 已取消';
+            }
+        }
+
+        // 文件上传处理
         function handleFile(input, type) {
-            const file = input.files[0];
+            var file = input.files[0];
             if (!file) return;
-            const preview = document.getElementById('uploadPreview');
-            const content = document.getElementById('previewContent');
-            const info = document.getElementById('fileInfo');
+            var preview = document.getElementById('uploadPreview');
+            var content = document.getElementById('previewContent');
+            var info = document.getElementById('fileInfo');
             preview.classList.add('active');
             info.textContent = '文件名: ' + file.name + '\n大小: ' + (file.size / 1024).toFixed(1) + ' KB\n类型: ' + (file.type || '未知');
             if (type === 'image' || (type === 'auto' && file.type.startsWith('image/'))) {
-                const reader = new FileReader();
+                var reader = new FileReader();
                 reader.onload = function (e) {
                     content.innerHTML = '<img src="' + e.target.result + '" alt="预览">';
                 };
                 reader.readAsDataURL(file);
             } else if (type === 'video' || (type === 'auto' && file.type.startsWith('video/'))) {
-                const url = URL.createObjectURL(file);
+                var url = URL.createObjectURL(file);
                 content.innerHTML = '<video src="' + url + '" controls style="max-height:200px"></video>';
             } else {
                 content.innerHTML = '<div style="text-align:center;padding:20px;color:#666;"><div style="font-size:40px;margin-bottom:10px;">📎</div><div>文件已选择</div></div>';
             }
         }
+
         document.getElementById('cameraInput').addEventListener('change', function () { handleFile(this, 'image'); });
         document.getElementById('imageInput').addEventListener('change', function () { handleFile(this, 'image'); });
         document.getElementById('videoInput').addEventListener('change', function () { handleFile(this, 'video'); });
