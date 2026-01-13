@@ -183,6 +183,19 @@
             </div>
             <div class="hint" id="networkResult">网络状态会实时更新</div>
         </div>
+        <!-- 通知测试 -->
+        <div class="card">
+            <h2>🔔 通知测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="sendNotification()">
+                    <span class="icon">📩</span> 立即通知
+                </button>
+                <button class="btn btn-doc" onclick="scheduleNotification()">
+                    <span class="icon">⏰</span> 5秒后提醒
+                </button>
+            </div>
+            <div class="hint" id="notifyResult">点击按钮测试通知功能</div>
+        </div>
         <!-- 扫码测试 -->
         <div class="card">
             <h2>📸 扫码测试</h2>
@@ -351,6 +364,31 @@
             var status = Web2APK.getNetworkStatus();
             var icon = status === 'wifi' ? '📶' : status === 'mobile' ? '📱' : '❌';
             result.textContent = icon + ' 当前网络: ' + status;
+        }
+        //通知测试
+        function sendNotification() {
+            var result = document.getElementById('notifyResult');
+
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            Web2APK.sendNotification('Web2APK', '这是一条立即发送的测试通知！');
+            result.textContent = '✅ 已发送通知';
+        }
+
+        function scheduleNotification() {
+            var result = document.getElementById('notifyResult');
+
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            // 5秒后发送
+            Web2APK.scheduleNotification('Web2APK', '闹钟响了！这是5秒后的提醒。', 5000);
+            result.textContent = '⏰ 已设置5秒后提醒（请尝试关闭APP）';
         }
         //扫码测试
         function scanQRCode() {

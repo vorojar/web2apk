@@ -75,6 +75,9 @@ class MainActivity : AppCompatActivity() {
     // 扫码相关
     private lateinit var scanLauncher: ActivityResultLauncher<Intent>
 
+    // 通知权限相关
+    private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -198,6 +201,13 @@ class MainActivity : AppCompatActivity() {
                     val safeResult = scanResult.replace("'", "\\'")
                     webView.evaluateJavascript("if(typeof onScanResult==='function'){onScanResult('$safeResult')}", null)
                 }
+            }
+        }
+
+        // 通知权限请求
+        notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) {
+                Toast.makeText(this, "需要通知权限才能接收提醒", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -872,6 +882,64 @@ class MainActivity : AppCompatActivity() {
         fun scanQRCode() {
             val intent = Intent(context, ScanActivity::class.java)
             scanLauncher.launch(intent)
+        }
+
+        /**
+         * 发送本地通知
+         * @param title 标题
+         * @param message 内容
+         */
+        @android.webkit.JavascriptInterface
+        fun sendNotification(title: String, message: String) {
+            scheduleNotification(title, message, 0)
+        }
+
+        /**
+         * 延时发送通知
+         * @param title 标题
+         * @param message 内容
+         * @param delayMillis 延时毫秒数
+         */
+        @android.webkit.JavascriptInterface
+        fun scheduleNotification(title: String, message: String, delayMillis: Long) {
+            // 检查权限 (Android 13+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    return
+                }
+            }
+
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                putExtra("title", title)
+                putExtra("message", message)
+            }
+            
+            val pendingIntent = android.app.PendingIntent.getBroadcast(
+                context,
+                System.currentTimeMillis().toInt(),
+                intent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val triggerTime = System.currentTimeMillis() + delayMillis
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                     alarmManager.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                } else {
+                     alarmManager.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            } else {
+                alarmManager.setExact(android.app.AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            }
+            
+            if (delayMillis > 0) {
+                Toast.makeText(context, "已设置提醒", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }
