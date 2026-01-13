@@ -7,8 +7,14 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- 拍照权限（运行时请求） -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 位置权限（运行时请求，网页需要时才弹窗） -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- 振动权限（无需运行时请求） -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -30,6 +36,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 内置浏览器 -->
+        <activity
+            android:name="com.webapk.app.ExternalBrowserActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.WebAPK" />
 
         <!-- FileProvider 用于拍照 -->
         <provider

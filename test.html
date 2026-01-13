@@ -173,6 +173,72 @@
 <body>
     <div class="container">
         <h1>📱 WebAPK 功能测试</h1>
+        <!-- 网络状态测试 -->
+        <div class="card">
+            <h2>🌐 网络状态测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-doc" onclick="checkNetwork()">
+                    <span class="icon">🔍</span> 查询网络状态
+                </button>
+            </div>
+            <div class="hint" id="networkResult">网络状态会实时更新</div>
+        </div>
+        <!-- 屏幕常亮 & 振动测试 -->
+        <div class="card">
+            <h2>📱 设备控制测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="toggleScreenOn()">
+                    <span class="icon">💡</span> 切换屏幕常亮
+                </button>
+                <button class="btn btn-camera" onclick="testVibrate()">
+                    <span class="icon">📳</span> 振动反馈
+                </button>
+            </div>
+            <div class="hint" id="deviceResult">点击按钮测试设备控制</div>
+        </div>
+        <!-- 分享测试 -->
+        <div class="card">
+            <h2>📤 系统分享测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="testShare()">
+                    <span class="icon">📤</span> 分享到...
+                </button>
+                <button class="btn btn-doc" onclick="getAppVersion()">
+                    <span class="icon">📱</span> 获取APP版本
+                </button>
+            </div>
+            <div class="hint" id="shareResult">点击按钮测试分享功能</div>
+        </div>
+        <!-- UA 测试 -->
+        <div class="card">
+            <h2>🔍 User-Agent 测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-doc" onclick="showUA()">
+                    <span class="icon">📋</span> 显示 User-Agent
+                </button>
+            </div>
+            <div class="hint" id="uaResult" style="word-break: break-all;">点击按钮查看 UA</div>
+        </div>
+        <!-- 位置测试 -->
+        <div class="card">
+            <h2>📍 位置权限测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="getLocation()">
+                    <span class="icon">📍</span> 获取当前位置
+                </button>
+            </div>
+            <div class="hint" id="locationResult">点击按钮获取 GPS 位置</div>
+        </div>
+        <!-- 外链测试 -->
+        <div class="card">
+            <h2>🔗 外部链接测试</h2>
+            <div class="btn-group">
+                <a href="https://www.ehafo.com" class="btn btn-download">
+                    <span class="icon">🔍</span> 打开易哈佛
+                </a>
+            </div>
+            <div class="hint">外域链接将在内置浏览器中打开</div>
+        </div>
 
         <!-- 视频全屏测试 -->
         <div class="card">
@@ -263,6 +329,122 @@
     </div>
 
     <script>
+        // 主动查询网络状态
+        function checkNetwork() {
+            var result = document.getElementById('networkResult');
+
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            var status = Web2APK.getNetworkStatus();
+            var icon = status === 'wifi' ? '📶' : status === 'mobile' ? '📱' : '❌';
+            result.textContent = icon + ' 当前网络: ' + status;
+        }
+
+        // 实时监听网络变化（APP 会自动调用）
+        function onNetworkChange(isConnected, type) {
+            var result = document.getElementById('networkResult');
+            if (isConnected) {
+                result.textContent = '✅ 网络已连接: ' + type;
+                result.style.color = '#07C160';
+            } else {
+                result.textContent = '❌ 网络已断开';
+                result.style.color = '#ff4444';
+            }
+        }
+        //屏幕常亮 & 振动测试
+        var screenOn = false;
+
+        function toggleScreenOn() {
+            var result = document.getElementById('deviceResult');
+
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            screenOn = !screenOn;
+            Web2APK.keepScreenOn(screenOn);
+            result.textContent = screenOn ? '💡 屏幕常亮已开启' : '🌙 屏幕常亮已关闭';
+        }
+
+        function testVibrate() {
+            var result = document.getElementById('deviceResult');
+
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            Web2APK.vibrate(100);  // 振动 100 毫秒
+            result.textContent = '📳 已振动 100ms';
+        }
+        //分享测试
+        function testShare() {
+            var result = document.getElementById('shareResult');
+
+            // 检查是否在 APP 中运行
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境（请在 APP 中测试）';
+                return;
+            }
+
+            // 调用系统分享
+            Web2APK.share(
+                'WebAPK 功能测试',           // 标题
+                '我正在使用 Web2APK 生成的应用！', // 内容
+                'https://github.com'         // 链接（可选）
+            );
+            result.textContent = '✅ 已调用系统分享';
+        }
+
+        function getAppVersion() {
+            var result = document.getElementById('shareResult');
+
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            var version = Web2APK.getVersion();
+            result.textContent = '📱 APP 版本: ' + version;
+        }
+        //UA 测试
+        function showUA() {
+            var ua = navigator.userAgent;
+            var result = document.getElementById('uaResult');
+            result.textContent = ua;
+
+            // 检查是否包含 Web2APK 标识
+            if (ua.indexOf('Web2APK') !== -1) {
+                result.style.color = '#07C160';
+                result.textContent += '\n\n✅ 检测到 Web2APK 标识！';
+            }
+        }
+        //位置测试
+        function getLocation() {
+            var result = document.getElementById('locationResult');
+            result.textContent = '正在获取位置...';
+
+            if (!navigator.geolocation) {
+                result.textContent = '您的浏览器不支持定位';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    result.textContent = '纬度: ' + pos.coords.latitude.toFixed(6) +
+                        '\n经度: ' + pos.coords.longitude.toFixed(6) +
+                        '\n精度: ' + pos.coords.accuracy.toFixed(0) + '米';
+                },
+                function (err) {
+                    result.textContent = '获取失败: ' + err.message;
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
         // JS弹窗测试
         function testAlert() {
             alert('这是一个 alert() 弹窗！\n\n如果你看到的是原生样式的弹窗，说明 JS 弹窗支持已启用。');

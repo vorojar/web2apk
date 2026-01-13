@@ -66,6 +66,33 @@ class MainActivity : AppCompatActivity() {
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private var originalOrientation: Int = 0
 
+    // 位置权限相关
+    private var geolocationCallback: android.webkit.GeolocationPermissions.Callback? = null
+    private var geolocationOrigin: String? = null
+    private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
+
+    // 网络状态监听
+    private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: android.net.Network) {
+            runOnUiThread { notifyNetworkStatus() }
+        }
+        override fun onLost(network: android.net.Network) {
+            runOnUiThread { notifyNetworkStatus() }
+        }
+        override fun onCapabilitiesChanged(network: android.net.Network, networkCapabilities: android.net.NetworkCapabilities) {
+            runOnUiThread { notifyNetworkStatus() }
+        }
+    }
+
+    private fun notifyNetworkStatus() {
+        val status = getNetworkStatus()
+        val isConnected = status != "none"
+        webView.evaluateJavascript(
+            "if(typeof onNetworkChange==='function'){onNetworkChange($isConnected,'$status')}",
+            null
+        )
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,6 +174,16 @@ class MainActivity : AppCompatActivity() {
             }
             filePathCallback = null
         }
+
+        // 位置权限请求
+        locationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            val fineGranted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+            val coarseGranted = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            val granted = fineGranted || coarseGranted
+            geolocationCallback?.invoke(geolocationOrigin, granted, false)
+            geolocationCallback = null
+            geolocationOrigin = null
+        }
     }
 
     private fun setupSwipeRefresh() {
@@ -192,14 +229,18 @@ class MainActivity : AppCompatActivity() {
             cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
 
-            // 设置 User-Agent
-            userAgentString = userAgentString.replace("; wv", "")
+            // 设置 User-Agent（附加 Web2APK 标识）
+            val defaultUA = userAgentString.replace("; wv", "")
+            userAgentString = "$defaultUA Web2APK/1.0"
         }
 
         // 设置下载监听器
         webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             downloadFile(url, userAgent, contentDisposition, mimeType)
         }
+
+        // 添加 JavaScript Interface（提供原生能力给网页）
+        webView.addJavascriptInterface(Web2APKBridge(this), "Web2APK")
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -220,6 +261,9 @@ class MainActivity : AppCompatActivity() {
                     isFirstLoad = false
                     hideSplashScreen()
                 }
+
+                // 页面加载完成后，主动通知当前网络状态
+                notifyNetworkStatus()
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -245,18 +289,29 @@ class MainActivity : AppCompatActivity() {
                     return true
                 }
 
-                // 处理外部链接（电话、邮件等）
-                return if (url.startsWith("tel:") || url.startsWith("mailto:") ||
-                           url.startsWith("sms:") || url.startsWith("intent:")) {
+                // 处理特殊协议（电话、邮件等）
+                if (url.startsWith("tel:") || url.startsWith("mailto:") ||
+                    url.startsWith("sms:") || url.startsWith("intent:")) {
                     try {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                    true
-                } else {
-                    false
+                    return true
                 }
+
+                // 检查是否是外域链接
+                val mainHost = Uri.parse(getString(R.string.web_url)).host ?: ""
+                val linkHost = Uri.parse(url).host ?: ""
+
+                // 外域链接用内置浏览器打开
+                if (linkHost.isNotEmpty() && mainHost.isNotEmpty() && !linkHost.endsWith(mainHost) && !mainHost.endsWith(linkHost)) {
+                    ExternalBrowserActivity.start(this@MainActivity, url)
+                    return true
+                }
+
+                // 同域链接在当前 WebView 正常加载
+                return false
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
@@ -407,6 +462,28 @@ class MainActivity : AppCompatActivity() {
                     .setOnCancelListener { result?.cancel() }
                     .show()
                 return true
+            }
+
+            // 位置权限请求（网页调用 navigator.geolocation 时触发）
+            override fun onGeolocationPermissionsShowPrompt(origin: String?, callback: android.webkit.GeolocationPermissions.Callback?) {
+                geolocationOrigin = origin
+                geolocationCallback = callback
+
+                // 检查是否已有权限
+                val fineLocation = android.Manifest.permission.ACCESS_FINE_LOCATION
+                val coarseLocation = android.Manifest.permission.ACCESS_COARSE_LOCATION
+                val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(this@MainActivity, fineLocation) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(this@MainActivity, coarseLocation) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                if (hasFine || hasCoarse) {
+                    // 已有权限，直接允许
+                    callback?.invoke(origin, true, false)
+                    geolocationCallback = null
+                    geolocationOrigin = null
+                } else {
+                    // 请求权限
+                    locationPermissionLauncher.launch(arrayOf(fineLocation, coarseLocation))
+                }
             }
         }
     }
@@ -634,15 +711,142 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         webView.onResume()
+        // 注册网络状态监听
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            cm.registerDefaultNetworkCallback(networkCallback)
+        } else {
+            val request = android.net.NetworkRequest.Builder().build()
+            cm.registerNetworkCallback(request, networkCallback)
+        }
     }
 
     override fun onPause() {
         super.onPause()
         webView.onPause()
+        // 注销网络状态监听
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        try { cm.unregisterNetworkCallback(networkCallback) } catch (e: Exception) {}
     }
 
     override fun onDestroy() {
         webView.destroy()
         super.onDestroy()
+    }
+
+    /**
+     * 获取当前网络状态
+     * @return wifi / mobile / vpn+wifi / vpn+mobile / vpn / none
+     */
+    private fun getNetworkStatus(): String {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = cm.activeNetwork ?: return "none"
+        val capabilities = cm.getNetworkCapabilities(network) ?: return "none"
+
+        // 检查网络是否真的可以上网
+        if (!capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) ||
+            !capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+            return "none"
+        }
+
+        val hasVpn = capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)
+        val hasWifi = capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)
+        val hasMobile = capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)
+
+        return when {
+            hasVpn && hasWifi -> "vpn+wifi"
+            hasVpn && hasMobile -> "vpn+mobile"
+            hasVpn -> "vpn"
+            hasWifi -> "wifi"
+            hasMobile -> "mobile"
+            else -> "other"
+        }
+    }
+
+    /**
+     * JavaScript Interface - 提供原生能力给网页
+     * 网页可通过 window.Web2APK.xxx() 调用
+     */
+    inner class Web2APKBridge(private val context: Context) {
+
+        /**
+         * 系统分享
+         * @param title 分享标题
+         * @param text 分享内容
+         * @param url 分享链接（可选）
+         */
+        @android.webkit.JavascriptInterface
+        fun share(title: String, text: String, url: String?) {
+            val shareText = if (url.isNullOrEmpty()) text else "$text $url"
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, title)
+                putExtra(Intent.EXTRA_TEXT, shareText)
+            }
+            context.startActivity(Intent.createChooser(intent, "分享到"))
+        }
+
+        /**
+         * 检查是否支持分享
+         */
+        @android.webkit.JavascriptInterface
+        fun canShare(): Boolean = true
+
+        /**
+         * 获取网络状态
+         * @return "wifi" / "mobile" / "none" / "other"
+         */
+        @android.webkit.JavascriptInterface
+        fun getNetworkStatus(): String = this@MainActivity.getNetworkStatus()
+
+        /**
+         * 获取 APP 版本号
+         */
+        @android.webkit.JavascriptInterface
+        fun getVersion(): String {
+            return try {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0"
+            } catch (e: Exception) {
+                "1.0"
+            }
+        }
+
+        /**
+         * 屏幕常亮控制
+         * @param on true=保持常亮, false=恢复正常
+         */
+        @android.webkit.JavascriptInterface
+        fun keepScreenOn(on: Boolean) {
+            (context as? Activity)?.runOnUiThread {
+                if (on) {
+                    (context as? Activity)?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    (context as? Activity)?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+        }
+
+        /**
+         * 振动反馈
+         * @param milliseconds 振动时长（毫秒）
+         */
+        @android.webkit.JavascriptInterface
+        fun vibrate(milliseconds: Int) {
+            val duration = milliseconds.toLong()
+            val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+                vibratorManager.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            }
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(duration, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(duration)
+            }
+        }
     }
 }
