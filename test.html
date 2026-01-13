@@ -183,6 +183,16 @@
             </div>
             <div class="hint" id="networkResult">网络状态会实时更新</div>
         </div>
+        <!-- 扫码测试 -->
+        <div class="card">
+            <h2>📸 扫码测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="scanQRCode()">
+                    <span class="icon">🔍</span> 扫描二维码
+                </button>
+            </div>
+            <div class="hint" id="scanResult">点击按钮开始扫码</div>
+        </div>
         <!-- 屏幕常亮 & 振动测试 -->
         <div class="card">
             <h2>📱 设备控制测试</h2>
@@ -342,7 +352,30 @@
             var icon = status === 'wifi' ? '📶' : status === 'mobile' ? '📱' : '❌';
             result.textContent = icon + ' 当前网络: ' + status;
         }
+        //扫码测试
+        function scanQRCode() {
+            var result = document.getElementById('scanResult');
 
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            result.textContent = '正在启动相机...';
+            Web2APK.scanQRCode();
+        }
+
+        // 扫码结果回调（APP 自动调用）
+        function onScanResult(text) {
+            var result = document.getElementById('scanResult');
+            result.textContent = '✅ 扫码结果: ' + text;
+            result.style.color = '#07C160';
+
+            // 震动反馈
+            if (typeof Web2APK !== 'undefined') {
+                Web2APK.vibrate(100);
+            }
+        }
         // 实时监听网络变化（APP 会自动调用）
         function onNetworkChange(isConnected, type) {
             var result = document.getElementById('networkResult');

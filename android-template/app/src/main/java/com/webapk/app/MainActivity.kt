@@ -69,7 +69,11 @@ class MainActivity : AppCompatActivity() {
     // 位置权限相关
     private var geolocationCallback: android.webkit.GeolocationPermissions.Callback? = null
     private var geolocationOrigin: String? = null
+
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
+
+    // 扫码相关
+    private lateinit var scanLauncher: ActivityResultLauncher<Intent>
 
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
@@ -183,6 +187,18 @@ class MainActivity : AppCompatActivity() {
             geolocationCallback?.invoke(geolocationOrigin, granted, false)
             geolocationCallback = null
             geolocationOrigin = null
+        }
+
+        // 扫码结果
+        scanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val scanResult = result.data?.getStringExtra("SCAN_RESULT")
+                if (!scanResult.isNullOrEmpty()) {
+                    // 转义单引号，防止 JS 注入
+                    val safeResult = scanResult.replace("'", "\\'")
+                    webView.evaluateJavascript("if(typeof onScanResult==='function'){onScanResult('$safeResult')}", null)
+                }
+            }
         }
     }
 
@@ -847,6 +863,15 @@ class MainActivity : AppCompatActivity() {
                 @Suppress("DEPRECATION")
                 vibrator.vibrate(duration)
             }
+        }
+
+        /**
+         * 扫描二维码
+         */
+        @android.webkit.JavascriptInterface
+        fun scanQRCode() {
+            val intent = Intent(context, ScanActivity::class.java)
+            scanLauncher.launch(intent)
         }
     }
 }

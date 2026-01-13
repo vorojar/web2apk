@@ -43,6 +43,12 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Theme.WebAPK" />
 
+        <!-- 扫码界面 -->
+        <activity
+            android:name="com.webapk.app.ScanActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- FileProvider 用于拍照 -->
         <provider
             android:name="androidx.core.content.FileProvider"
