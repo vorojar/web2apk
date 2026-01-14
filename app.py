@@ -290,6 +290,12 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
         manifest_content = manifest_path.read_text(encoding='utf-8')
         manifest_content = manifest_content.replace('com.webapk.app', package_name)
 
+        # 替换 Deep Link host（从 URL 中提取域名）
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        deep_link_host = parsed_url.netloc or parsed_url.path.split('/')[0]
+        manifest_content = manifest_content.replace('DEEP_LINK_HOST_PLACEHOLDER', deep_link_host)
+
         # 添加屏幕方向设置
         if screen_orientation != 'unspecified':
             manifest_content = manifest_content.replace(
@@ -454,6 +460,71 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
 生成时间: {time.strftime("%Y-%m-%d %H:%M:%S")}
 '''
 
+        # 获取证书指纹用于 App Links
+        def get_cert_fingerprint(keystore_path, store_password, key_alias):
+            """使用 keytool 获取证书 SHA256 指纹"""
+            tools_dir = BASE_DIR / 'tools'
+            jdk_dirs = list((tools_dir / 'jdk').glob('jdk-*'))
+            if jdk_dirs:
+                keytool = jdk_dirs[0] / 'bin' / ('keytool.exe' if sys.platform == 'win32' else 'keytool')
+            else:
+                keytool = 'keytool'
+            
+            cmd = [
+                str(keytool), '-list', '-v',
+                '-keystore', str(keystore_path),
+                '-alias', key_alias,
+                '-storepass', store_password
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            # 从输出中提取 SHA256 指纹
+            for line in result.stdout.split('\n'):
+                if 'SHA256' in line.upper():
+                    # 格式: SHA256: XX:XX:XX:...
+                    fingerprint = line.split(':', 1)[1].strip() if ':' in line else ''
+                    return fingerprint
+            return 'FINGERPRINT_NOT_FOUND'
+
+        cert_fingerprint = get_cert_fingerprint(keystore_path, store_password, key_alias)
+
+        # 创建 assetlinks.json 内容
+        assetlinks_content = f'''[{{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {{
+    "namespace": "android_app",
+    "package_name": "{package_name}",
+    "sha256_cert_fingerprints": ["{cert_fingerprint}"]
+  }}
+}}]'''
+
+        # 创建 App Links 部署说明
+        applinks_guide = f'''===== {app_name} 链接直达功能配置指南 =====
+
+【功能说明】
+配置后，用户在微信、短信、邮件等应用中点击您网站的链接，
+将直接打开 APP 并跳转到对应页面，无需弹出"选择打开方式"。
+
+【配置步骤】
+1. 将 .well-known 文件夹上传到您网站的根目录
+2. 确保可以通过浏览器访问:
+   https://{deep_link_host}/.well-known/assetlinks.json
+3. 配置完成！约 24 小时内生效
+
+【验证方法】
+在浏览器中访问 https://{deep_link_host}/.well-known/assetlinks.json
+如果能看到 JSON 内容，说明配置正确。
+
+【注意事项】
+- 您的网站必须支持 HTTPS
+- 如果使用 CDN，请确保该路径不被缓存或拦截
+- 部分设备可能需要重启后生效
+
+【技术信息】
+包名: {package_name}
+证书指纹: {cert_fingerprint}
+生成时间: {time.strftime("%Y-%m-%d %H:%M:%S")}
+'''
+
         # 创建 ZIP 文件
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             # 添加 APK
@@ -462,6 +533,10 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
             zf.write(keystore_path, 'release.keystore')
             # 添加说明文件
             zf.writestr('证书信息-请妥善保管.txt', readme_content)
+            # 添加 App Links 配置文件
+            zf.writestr('.well-known/assetlinks.json', assetlinks_content)
+            # 添加 App Links 部署说明
+            zf.writestr('链接直达功能配置指南.txt', applinks_guide)
 
         # 清理构建目录
         shutil.rmtree(build_dir)

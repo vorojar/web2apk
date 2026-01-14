@@ -172,6 +172,10 @@
             color: white;
         }
     </style>
+    <!-- Plyr 播放器样式 -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <!-- Plyr 播放器脚本 -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 </head>
 
 <body>
@@ -301,8 +305,9 @@
         <div class="card">
             <h2>🎬 视频全屏测试</h2>
             <div class="video-container">
-                <video controls playsinline>
-                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                <video id="player" playsinline controls
+                    data-poster="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=">
+                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4"
                         type="video/mp4">
                     您的浏览器不支持视频播放
                 </video>
@@ -389,15 +394,25 @@
         // 主动查询网络状态
         function checkNetwork() {
             var result = document.getElementById('networkResult');
-
             if (typeof Web2APK === 'undefined') {
                 result.textContent = '⚠️ 未检测到 Web2APK 环境';
                 return;
             }
 
             var status = Web2APK.getNetworkStatus();
-            var icon = status === 'wifi' ? '📶' : status === 'mobile' ? '📱' : '❌';
+            var icon = status === 'none' ? '❌ ' : '✅';
             result.textContent = icon + ' 当前网络: ' + status;
+        }
+        // 实时监听网络变化（APP 会自动调用）
+        function onNetworkChange(isConnected, type) {
+            var result = document.getElementById('networkResult');
+            if (isConnected) {
+                result.textContent = '✅ 网络已连接: ' + type;
+                result.style.color = '#07C160';
+            } else {
+                result.textContent = '❌ 网络已断开';
+                result.style.color = '#ff4444';
+            }
         }
         //通知测试
         function sendNotification() {
@@ -502,17 +517,6 @@
             // 震动反馈
             if (typeof Web2APK !== 'undefined') {
                 Web2APK.vibrate(100);
-            }
-        }
-        // 实时监听网络变化（APP 会自动调用）
-        function onNetworkChange(isConnected, type) {
-            var result = document.getElementById('networkResult');
-            if (isConnected) {
-                result.textContent = '✅ 网络已连接: ' + type;
-                result.style.color = '#07C160';
-            } else {
-                result.textContent = '❌ 网络已断开';
-                result.style.color = '#ff4444';
             }
         }
         //屏幕常亮 & 振动测试
@@ -674,6 +678,18 @@
 
         // 监听系统切换
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkDark);
+    </script>
+    <script>
+        // 初始化 Plyr 播放器
+        document.addEventListener('DOMContentLoaded', () => {
+            const player = new Plyr('#player', {
+                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+                i18n: {
+                    speed: '速度',
+                    normal: '正常',
+                }
+            });
+        });
     </script>
 </body>
 

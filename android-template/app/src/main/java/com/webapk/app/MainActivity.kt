@@ -38,6 +38,9 @@ import java.io.File
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.*
+import android.app.PictureInPictureParams
+import android.util.Rational
+import android.content.res.Configuration
 
 class MainActivity : AppCompatActivity() {
 
@@ -439,6 +442,15 @@ class MainActivity : AppCompatActivity() {
                     controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
                     controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
+
+                // Android 12+ 自动进入画中画
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val params = PictureInPictureParams.Builder()
+                        .setAspectRatio(Rational(16, 9))
+                        .setAutoEnterEnabled(true)
+                        .build()
+                    this@MainActivity.setPictureInPictureParams(params)
+                }
             }
 
             override fun onHideCustomView() {
@@ -458,6 +470,11 @@ class MainActivity : AppCompatActivity() {
 
                 // 显示系统栏
                 WindowInsetsControllerCompat(window, window.decorView).show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+
+                // 退出全屏时关闭自动画中画
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    this@MainActivity.setPictureInPictureParams(PictureInPictureParams.Builder().setAutoEnterEnabled(false).build())
+                }
             }
 
             // JS alert() 弹窗
@@ -719,8 +736,41 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadUrl() {
-        val url = getString(R.string.web_url)
-        webView.loadUrl(url)
+        // 处理分享进来的链接（用内置浏览器打开）
+        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            handleSharedUrl(intent)
+        }
+        // 处理 Deep Link 传入的 URL
+        val intentUrl = intent?.data?.toString()
+        if (!intentUrl.isNullOrEmpty()) {
+            webView.loadUrl(intentUrl)
+        } else {
+            val url = getString(R.string.web_url)
+            webView.loadUrl(url)
+        }
+    }
+
+    private fun handleSharedUrl(intent: Intent?) {
+        val sharedText = intent?.getStringExtra(Intent.EXTRA_TEXT) ?: return
+        // 提取 URL（分享的文字可能包含其他内容）
+        val urlPattern = Regex("https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+")
+        val matchResult = urlPattern.find(sharedText)
+        val url = matchResult?.value ?: return
+        // 用内置浏览器打开
+        ExternalBrowserActivity.start(this, url)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        // 处理分享进来的链接
+        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            handleSharedUrl(intent)
+            return
+        }
+        // 处理 singleTask 模式下的 Deep Link
+        intent?.data?.let { uri ->
+            webView.loadUrl(uri.toString())
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -742,6 +792,36 @@ class MainActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
+    override fun onUserLeaveHint() {
+        // Android 8.0 - 11 手动进入画中画 (Android 12+ 使用 setAutoEnterEnabled)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            if (customView != null) {
+                val params = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+                enterPictureInPictureMode(params)
+            }
+        }
+        super.onUserLeaveHint()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            // 隐藏不必要的 UI
+            swipeRefresh.visibility = View.GONE
+            fullscreenContainer.visibility = View.VISIBLE
+        } else {
+            // 退出画中画，恢复全屏或正常状态
+            if (customView != null) {
+                fullscreenContainer.visibility = View.VISIBLE
+            } else {
+                swipeRefresh.visibility = View.VISIBLE
+                fullscreenContainer.visibility = View.GONE
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         webView.onResume()
@@ -756,6 +836,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        // 如果处于画中画模式，继续播放视频，不暂停 WebView
+        if (isInPictureInPictureMode) {
+            super.onPause()
+            return
+        }
+
         super.onPause()
         webView.onPause()
         // 注销网络状态监听
