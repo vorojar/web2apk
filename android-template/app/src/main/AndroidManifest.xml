@@ -33,7 +33,7 @@
         <activity
             android:name="com.webapk.app.MainActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -44,7 +44,7 @@
         <!-- 内置浏览器 -->
         <activity
             android:name="com.webapk.app.ExternalBrowserActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:theme="@style/Theme.WebAPK" />
 
         <!-- 扫码界面 -->

@@ -25,11 +25,10 @@
         }
 
         h1 {
-            color: white;
+            color: #C6613F;
             text-align: center;
             margin-bottom: 20px;
             font-size: 22px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .card {
@@ -200,6 +199,26 @@
                 </button>
             </div>
             <div class="hint" id="notifyResult">点击按钮测试通知功能</div>
+        </div>
+        <!-- 状态栏颜色测试 -->
+        <div class="card">
+            <h2>🎨 状态栏颜色</h2>
+            <div class="btn-group">
+                <button class="btn" style="background:#FF0000;color:white" onclick="changeColor('#FF0000')">红色</button>
+                <button class="btn" style="background:#000000;color:white" onclick="changeColor('#000000')">黑色</button>
+                <button class="btn" style="background:#FFFFFF;color:black;border:1px solid #ddd"
+                    onclick="changeColor('#FFFFFF')">白色</button>
+            </div>
+        </div>
+        <!-- 缓存清理测试 -->
+        <div class="card">
+            <h2>🧹 缓存清理</h2>
+            <div class="btn-group">
+                <button class="btn btn-doc" onclick="clearCache()">
+                    <span class="icon">🗑️</span> 清理缓存
+                </button>
+            </div>
+            <div class="hint" id="cacheResult">点击按钮清理 WebView 缓存</div>
         </div>
         <!-- 微信登录测试 -->
         <div class="card">
@@ -405,7 +424,33 @@
             Web2APK.scheduleNotification('Web2APK', '闹钟响了！这是5秒后的提醒。', 5000);
             result.textContent = '⏰ 已设置5秒后提醒（请尝试关闭APP）';
         }
+        //状态栏颜色测试
+        function changeColor(color) {
+            if (typeof Web2APK !== 'undefined') {
+                Web2APK.setStatusBarColor(color);
+            }
+            // 同时修改 meta 标签以测试自动监听（可选）
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (!meta) {
+                meta = document.createElement('meta');
+                meta.name = "theme-color";
+                document.head.appendChild(meta);
+            }
+            meta.content = color;
+        }
+        //缓存清理测试
+        function clearCache() {
+            var result = document.getElementById('cacheResult');
 
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            // true = 清理磁盘文件（彻底清理）
+            Web2APK.clearCache(true);
+            result.textContent = '✅ 缓存清理指令已发送';
+        }
         //微信登录测试 
         function loginWechat() {
             var result = document.getElementById('wechatResult');
@@ -608,6 +653,27 @@
         document.getElementById('imageInput').addEventListener('change', function () { handleFile(this, 'image'); });
         document.getElementById('videoInput').addEventListener('change', function () { handleFile(this, 'video'); });
         document.getElementById('fileInput').addEventListener('change', function () { handleFile(this, 'auto'); });
+
+        // 检测深色模式并显示标签
+        function checkDark() {
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const title = document.querySelector('h1'); // 获取大标题
+            if (isDark) {
+                title.innerHTML = 'Web2APK 功能测试 <span style="font-size:12px;background:#333;color:#fff;padding:2px 5px;border-radius:4px;">DARK</span>';
+                document.body.style.background = '#1a1a1a'; // 顺便把背景变黑，不然看不清
+                document.body.style.color = '#ffffff';
+            } else {
+                title.innerHTML = 'Web2APK 功能测试';
+                document.body.style.background = '#FAF9F5'; // 顺便把背景变黑，不然看不清
+                document.body.style.color = '#000000';
+            }
+        }
+
+        // 初始检查
+        checkDark();
+
+        // 监听系统切换
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkDark);
     </script>
 </body>
 

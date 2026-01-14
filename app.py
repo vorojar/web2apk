@@ -293,8 +293,8 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
         # 添加屏幕方向设置
         if screen_orientation != 'unspecified':
             manifest_content = manifest_content.replace(
-                'android:configChanges="orientation|screenSize|keyboardHidden"',
-                f'android:configChanges="orientation|screenSize|keyboardHidden"\n            android:screenOrientation="{screen_orientation}"'
+                'android:configChanges="orientation|screenSize|keyboardHidden|uiMode"',
+                f'android:configChanges="orientation|screenSize|keyboardHidden|uiMode"\n            android:screenOrientation="{screen_orientation}"'
             )
 
         manifest_path.write_text(manifest_content, encoding='utf-8')

@@ -248,6 +248,14 @@ class MainActivity : AppCompatActivity() {
             allowContentAccess = true
             loadWithOverviewMode = true
             useWideViewPort = true
+            
+            // 强制开启深色模式支持 (兼容国产 ROM)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // FORCE_DARK_AUTO: 让 WebView 自动适配系统深色模式
+                // 如果网页定义了 prefers-color-scheme，WebView 会尊重它
+                // 如果没定义，WebView 会尝试算法变黑 (Algorithmic Darkening)
+                forceDark = WebSettings.FORCE_DARK_AUTO
+            }
             builtInZoomControls = true
             displayZoomControls = false
             setSupportZoom(true)
@@ -945,6 +953,45 @@ class MainActivity : AppCompatActivity() {
             
             if (delayMillis > 0) {
                 Toast.makeText(context, "已设置提醒", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        /**
+         * 设置状态栏颜色
+         * @param colorHex 颜色值 (e.g. "#FFFFFF", "#FF0000")
+         */
+        @android.webkit.JavascriptInterface
+        fun setStatusBarColor(colorHex: String) {
+            (context as? Activity)?.runOnUiThread {
+                try {
+                    val color = Color.parseColor(colorHex)
+                    val window = (context as? Activity)?.window ?: return@runOnUiThread
+                    
+                    window.statusBarColor = color
+                    
+                    // 根据背景色亮度自动调整图标颜色
+                    val isDarkBackground = androidx.core.graphics.ColorUtils.calculateLuminance(color) < 0.5
+                    WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = !isDarkBackground
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        /**
+         * 清理缓存
+         * @param includeDiskFiles 是否清理磁盘文件（true=清理所有，false=仅清理内存）
+         */
+        @android.webkit.JavascriptInterface
+        fun clearCache(includeDiskFiles: Boolean) {
+            (context as? Activity)?.runOnUiThread {
+                try {
+                    // 清除 WebView 缓存
+                    webView.clearCache(includeDiskFiles)
+                    Toast.makeText(context, "缓存已清理", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }
