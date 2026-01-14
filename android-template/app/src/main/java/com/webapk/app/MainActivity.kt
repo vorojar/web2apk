@@ -868,7 +868,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                vibrator.vibrate(android.os.VibrationEffect.createOneShot(duration, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                // 使用 ALARM 类型的 AudioAttributes，确保优先级最高（即使在静音模式下）
+                val effect = android.os.VibrationEffect.createOneShot(duration, android.os.VibrationEffect.DEFAULT_AMPLITUDE)
+                val attributes = android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .build()
+                vibrator.vibrate(effect, attributes)
             } else {
                 @Suppress("DEPRECATION")
                 vibrator.vibrate(duration)

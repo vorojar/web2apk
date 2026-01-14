@@ -305,9 +305,14 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
         new_package_dir = build_dir / 'app' / 'src' / 'main' / 'java' / '/'.join(new_package_parts)
         new_package_dir.parent.mkdir(parents=True, exist_ok=True)
 
-        # 移动 MainActivity.kt
+        # 移动 MainActivity.kt 和其他文件
         if old_package_dir.exists():
             for f in old_package_dir.glob('*'):
+                if f.is_dir():
+                    # 如果是目录（如 wxapi），直接复制
+                    shutil.copytree(f, new_package_dir / f.name, dirs_exist_ok=True)
+                    continue
+
                 content = f.read_text(encoding='utf-8')
                 content = content.replace('package com.webapk.app', f'package {package_name}')
 

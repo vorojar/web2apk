@@ -167,6 +167,11 @@
             text-align: center;
             margin-top: 8px;
         }
+
+        .btn-wechat {
+            background-color: #07C160;
+            color: white;
+        }
     </style>
 </head>
 
@@ -195,6 +200,16 @@
                 </button>
             </div>
             <div class="hint" id="notifyResult">点击按钮测试通知功能</div>
+        </div>
+        <!-- 微信登录测试 -->
+        <div class="card">
+            <h2>💬 微信登录测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-wechat" onclick="loginWechat()">
+                    <span class="icon">💬</span> 微信登录
+                </button>
+            </div>
+            <div class="hint" id="wechatResult">点击按钮唤起微信授权</div>
         </div>
         <!-- 扫码测试 -->
         <div class="card">
@@ -390,6 +405,36 @@
             Web2APK.scheduleNotification('Web2APK', '闹钟响了！这是5秒后的提醒。', 5000);
             result.textContent = '⏰ 已设置5秒后提醒（请尝试关闭APP）';
         }
+
+        //微信登录测试 
+        function loginWechat() {
+            var result = document.getElementById('wechatResult');
+
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+
+            result.textContent = '正在唤起微信...';
+            Web2APK.loginWechat();
+        }
+
+        // 登录成功回调
+        function onWechatLogin(code) {
+            var result = document.getElementById('wechatResult');
+            result.textContent = '✅ 授权成功！Code: ' + code;
+            result.style.color = '#07C160';
+
+            // 这里你应该把 code 发给你的服务器
+            // fetch('/api/wechat/login?code=' + code)
+        }
+
+        // 登录失败回调
+        function onWechatLoginError(errCode) {
+            var result = document.getElementById('wechatResult');
+            result.textContent = '❌ 授权失败，错误码: ' + errCode;
+            result.style.color = '#ff4444';
+        }
         //扫码测试
         function scanQRCode() {
             var result = document.getElementById('scanResult');
@@ -449,8 +494,8 @@
                 return;
             }
 
-            Web2APK.vibrate(100);  // 振动 100 毫秒
-            result.textContent = '📳 已振动 100ms';
+            Web2APK.vibrate(1000);  // 振动 1000 毫秒
+            result.textContent = '📳 已振动 1000ms';
         }
         //分享测试
         function testShare() {
