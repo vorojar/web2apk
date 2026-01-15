@@ -271,36 +271,10 @@ class MainActivity : AppCompatActivity() {
     private fun setupRetryButton() {
         retryButton.setOnClickListener {
             hideError()
-            // 清除历史栈，防止重试成功后按返回键回到错误页
-            webView.clearHistory()
-            // 重新加载初始 URL，而不是 webView.reload()
-            loadUrl()
+            webView.reload()
         }
         exitButton.setOnClickListener {
             finishAffinity() // 退出应用（包括所有 Activity）
-        }
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        // 1. 处理全屏视频
-        if (customView != null) {
-            exitFullscreen()
-            return
-        }
-
-        // 2. 如果当前显示错误页，按返回键直接退出应用
-        if (errorView.visibility == View.VISIBLE) {
-            finishAffinity()
-            return
-        }
-
-        // 3. 处理 WebView 回退
-        if (webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            // 4. 无法回退，退出应用
-            super.onBackPressed()
         }
     }
 
@@ -517,7 +491,27 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onHideCustomView() {
-                exitFullscreen()
+                if (customView == null) return
+
+                // 移除全屏视图
+                fullscreenContainer.removeView(customView)
+                fullscreenContainer.visibility = View.GONE
+                swipeRefresh.visibility = View.VISIBLE
+
+                customView = null
+                customViewCallback?.onCustomViewHidden()
+                customViewCallback = null
+
+                // 恢复屏幕方向
+                requestedOrientation = originalOrientation
+
+                // 显示系统栏
+                WindowInsetsControllerCompat(window, window.decorView).show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+
+                // 退出全屏时关闭自动画中画
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    this@MainActivity.setPictureInPictureParams(PictureInPictureParams.Builder().setAutoEnterEnabled(false).build())
+                }
             }
 
             // JS alert() 弹窗
@@ -579,30 +573,6 @@ class MainActivity : AppCompatActivity() {
                     locationPermissionLauncher.launch(arrayOf(fineLocation, coarseLocation))
                 }
             }
-        }
-    }
-
-    private fun exitFullscreen() {
-        if (customView == null) return
-
-        // 移除全屏视图
-        fullscreenContainer.removeView(customView)
-        fullscreenContainer.visibility = View.GONE
-        swipeRefresh.visibility = View.VISIBLE
-
-        customView = null
-        customViewCallback?.onCustomViewHidden()
-        customViewCallback = null
-
-        // 恢复屏幕方向
-        requestedOrientation = originalOrientation
-
-        // 显示系统栏
-        WindowInsetsControllerCompat(window, window.decorView).show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-
-        // 退出全屏时关闭自动画中画
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            setPictureInPictureParams(PictureInPictureParams.Builder().setAutoEnterEnabled(false).build())
         }
     }
 
