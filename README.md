@@ -68,20 +68,6 @@
 ```bash
 # 方式一：运行安装脚本
 python setup_env.py
-
-# 方式二：双击运行
-install.bat
-```
-
-安装脚本会自动下载并配置：
-- OpenJDK 17
-- Android SDK (build-tools, platform-tools)
-- Gradle Wrapper
-- Python 依赖 (Flask, Pillow)
-
-### 2. 启动服务
-
-```bash
 # 双击运行
 start.bat
 ```
