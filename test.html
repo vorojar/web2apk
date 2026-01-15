@@ -257,16 +257,6 @@
             </div>
             <div class="hint" id="scanResult">点击按钮开始扫码</div>
         </div>
-        <!-- 语音输入测试 -->
-        <div class="card">
-            <h2>🎤 语音输入测试</h2>
-            <div class="btn-group">
-                <button class="btn btn-download" onclick="testVoiceInput()">
-                    <span class="icon">🎤</span> 开始语音输入
-                </button>
-            </div>
-            <div class="hint" id="voiceResult">点击按钮开始语音识别</div>
-        </div>
         <!-- 屏幕常亮 & 振动测试 -->
         <div class="card">
             <h2>📱 设备控制测试</h2>
@@ -809,38 +799,6 @@
                 result.textContent = '💭 剪贴板为空';
                 result.style.color = '#888';
             }
-        }
-
-        // 语音输入测试
-        function testVoiceInput() {
-            var result = document.getElementById('voiceResult');
-            if (typeof Web2APK === 'undefined') {
-                result.textContent = '⚠️ 未检测到 Web2APK 环境';
-                return;
-            }
-            result.textContent = '🎤 正在启动语音识别...';
-            result.style.color = '#666';
-            Web2APK.startVoiceInput();
-        }
-
-        // 语音识别结果回调
-        function onVoiceResult(text) {
-            var result = document.getElementById('voiceResult');
-            result.textContent = '✅ 识别结果: ' + text;
-            result.style.color = '#07C160';
-        }
-
-        // 语音识别错误回调
-        function onVoiceError(error) {
-            var result = document.getElementById('voiceResult');
-            var errorMsg = {
-                'cancelled': '已取消',
-                'empty': '未识别到语音',
-                'permission_denied': '麦克风权限被拒绝',
-                'not_supported': '设备不支持语音识别'
-            };
-            result.textContent = '❌ ' + (errorMsg[error] || error);
-            result.style.color = '#ff4444';
         }
 
         // 设置快捷方式（长按图标菜单）

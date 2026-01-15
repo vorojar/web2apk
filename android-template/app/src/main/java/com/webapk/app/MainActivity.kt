@@ -81,10 +81,6 @@ class MainActivity : AppCompatActivity() {
     // 通知权限相关
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
 
-    // 语音输入相关
-    private lateinit var voiceInputLauncher: ActivityResultLauncher<Intent>
-    private lateinit var voicePermissionLauncher: ActivityResultLauncher<String>
-
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -216,43 +212,6 @@ class MainActivity : AppCompatActivity() {
             if (!granted) {
                 Toast.makeText(this, "需要通知权限才能接收提醒", Toast.LENGTH_SHORT).show()
             }
-        }
-
-        // 语音输入结果
-        voiceInputLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val matches = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
-                val text = matches?.firstOrNull() ?: ""
-                if (text.isNotEmpty()) {
-                    val safeText = text.replace("'", "\\'")
-                    webView.evaluateJavascript("if(typeof onVoiceResult==='function'){onVoiceResult('$safeText')}", null)
-                } else {
-                    webView.evaluateJavascript("if(typeof onVoiceError==='function'){onVoiceError('empty')}", null)
-                }
-            } else {
-                webView.evaluateJavascript("if(typeof onVoiceError==='function'){onVoiceError('cancelled')}", null)
-            }
-        }
-
-        // 语音权限请求
-        voicePermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                launchVoiceInput()
-            } else {
-                webView.evaluateJavascript("if(typeof onVoiceError==='function'){onVoiceError('permission_denied')}", null)
-            }
-        }
-    }
-
-    private fun launchVoiceInput() {
-        try {
-            val intent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "请说话...")
-            }
-            voiceInputLauncher.launch(intent)
-        } catch (e: Exception) {
-            webView.evaluateJavascript("if(typeof onVoiceError==='function'){onVoiceError('not_supported')}", null)
         }
     }
 
@@ -1281,22 +1240,6 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 ""
-            }
-        }
-
-        /**
-         * 开始语音输入
-         * 结果通过 onVoiceResult(text) 回调
-         * 错误通过 onVoiceError(error) 回调
-         */
-        @android.webkit.JavascriptInterface
-        fun startVoiceInput() {
-            (context as? MainActivity)?.let { activity ->
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                    activity.launchVoiceInput()
-                } else {
-                    activity.voicePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
             }
         }
     }
