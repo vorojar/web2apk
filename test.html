@@ -237,6 +237,16 @@
             </div>
             <div class="hint" id="clipboardResult">点击按钮测试剪贴板功能</div>
         </div>
+        <!-- 生物识别测试 -->
+        <div class="card">
+            <h2>🔐 生物识别测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testBiometric()">
+                    <span class="icon">🔐</span> 指纹/面容验证
+                </button>
+            </div>
+            <div class="hint" id="biometricResult">点击按钮测试生物识别</div>
+        </div>
         <!-- 微信登录测试 -->
         <div class="card">
             <h2>💬 微信登录测试</h2>
@@ -799,6 +809,39 @@
                 result.textContent = '💭 剪贴板为空';
                 result.style.color = '#888';
             }
+        }
+
+        // 测试生物识别
+        function testBiometric() {
+            var result = document.getElementById('biometricResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            // 检查是否支持
+            var canAuth = Web2APK.canAuthenticate();
+            if (canAuth !== 0) {
+                result.textContent = '❌ 设备不支持生物识别 (错误码: ' + canAuth + ')';
+                result.style.color = '#ff4444';
+                return;
+            }
+            result.textContent = '🔐 请验证您的身份...';
+            result.style.color = '#888';
+            Web2APK.authenticate('解锁日记', '请使用指纹或面容验证', '取消');
+        }
+
+        // 生物识别成功回调
+        function onAuthSuccess() {
+            var result = document.getElementById('biometricResult');
+            result.textContent = '✅ 验证成功！已解锁';
+            result.style.color = '#07C160';
+        }
+
+        // 生物识别失败回调
+        function onAuthError(code, message) {
+            var result = document.getElementById('biometricResult');
+            result.textContent = '❌ 验证失败: ' + message;
+            result.style.color = '#ff4444';
         }
 
         // 设置快捷方式（长按图标菜单）

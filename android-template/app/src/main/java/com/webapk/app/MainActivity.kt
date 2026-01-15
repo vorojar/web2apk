@@ -1242,5 +1242,67 @@ class MainActivity : AppCompatActivity() {
                 ""
             }
         }
+
+        /**
+         * 检查设备是否支持生物识别
+         * @return 0=支持, 其他=不支持的错误码
+         */
+        @android.webkit.JavascriptInterface
+        fun canAuthenticate(): Int {
+            val biometricManager = androidx.biometric.BiometricManager.from(context)
+            return biometricManager.canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK)
+        }
+
+        /**
+         * 发起生物识别验证
+         * @param title 标题
+         * @param subtitle 副标题（可选）
+         * @param negativeButtonText 取消按钮文字
+         * 结果通过 onAuthSuccess() 或 onAuthError(code, message) 回调
+         */
+        @android.webkit.JavascriptInterface
+        fun authenticate(title: String, subtitle: String?, negativeButtonText: String?) {
+            this@MainActivity.runOnUiThread {
+                try {
+                    val executor = ContextCompat.getMainExecutor(this@MainActivity)
+                    
+                    val callback = object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
+                            super.onAuthenticationSucceeded(result)
+                            webView.evaluateJavascript("if(typeof onAuthSuccess==='function'){onAuthSuccess()}", null)
+                        }
+
+                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                            super.onAuthenticationError(errorCode, errString)
+                            val safeMessage = errString.toString().replace("'", "\\'")
+                            webView.evaluateJavascript("if(typeof onAuthError==='function'){onAuthError($errorCode,'$safeMessage')}", null)
+                        }
+
+                        override fun onAuthenticationFailed() {
+                            super.onAuthenticationFailed()
+                            // 单次失败不回调，用户可以重试
+                        }
+                    }
+
+                    val biometricPrompt = androidx.biometric.BiometricPrompt(
+                        this@MainActivity,
+                        executor,
+                        callback
+                    )
+
+                val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(title)
+                    .setSubtitle(subtitle ?: "")
+                    .setNegativeButtonText(negativeButtonText ?: "取消")
+                    .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    .build()
+
+                    biometricPrompt.authenticate(promptInfo)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    webView.evaluateJavascript("if(typeof onAuthError==='function'){onAuthError(-1,'${e.message?.replace("'", "\\'") ?: "未知错误"}')}", null)
+                }
+            }
+        }
     }
 }
