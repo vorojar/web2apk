@@ -283,6 +283,22 @@
             </div>
             <div class="hint" id="deviceResult">点击按钮测试设备控制</div>
         </div>
+        <!-- 前台服务测试 -->
+        <div class="card">
+            <h2>🔔 前台服务（保活）测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="startFgService()">
+                    <span class="icon">▶️</span> 启动前台服务
+                </button>
+                <button class="btn btn-camera" onclick="updateFgNotification()">
+                    <span class="icon">🔄</span> 更新通知内容
+                </button>
+                <button class="btn btn-file" onclick="stopFgService()">
+                    <span class="icon">⏹️</span> 停止服务
+                </button>
+            </div>
+            <div class="hint" id="fgServiceResult">适用于音乐播放、导航等需要后台运行的场景</div>
+        </div>
         <!-- 桌面小组件测试 -->
         <div class="card">
             <h2>📌 桌面小组件测试</h2>
@@ -914,6 +930,42 @@
                     url: "/cart"
                 }
             ]));
+        }
+
+        // 前台服务测试函数
+        function startFgService() {
+            var result = document.getElementById('fgServiceResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            Web2APK.startForegroundService('音乐播放中', '正在播放: 周杰伦 - 晴天');
+            result.textContent = '✅ 前台服务已启动，查看通知栏';
+            result.style.color = '#07C160';
+        }
+
+        function updateFgNotification() {
+            var result = document.getElementById('fgServiceResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            var songs = ['林俊杰 - 江南', '陈奕迅 - 富士山下', '邓紫棋 - 光年之外', '薛之谦 - 演员'];
+            var randomSong = songs[Math.floor(Math.random() * songs.length)];
+            Web2APK.updateForegroundNotification('音乐播放中', '正在播放: ' + randomSong);
+            result.textContent = '🔄 通知已更新: ' + randomSong;
+            result.style.color = '#07C160';
+        }
+
+        function stopFgService() {
+            var result = document.getElementById('fgServiceResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            Web2APK.stopForegroundService();
+            result.textContent = '⏹️ 前台服务已停止';
+            result.style.color = '#888';
         }
 
         // 页面加载后设置

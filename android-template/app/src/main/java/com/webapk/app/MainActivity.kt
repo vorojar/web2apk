@@ -1096,6 +1096,61 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // ==================== 前台服务（通知栏常驻保活） ====================
+
+        /**
+         * 启动前台服务（通知栏常驻）
+         * @param title 通知标题
+         * @param content 通知内容
+         * 注意：Android 13+ 首次调用会自动请求通知权限
+         */
+        @android.webkit.JavascriptInterface
+        fun startForegroundService(title: String, content: String) {
+            this@MainActivity.runOnUiThread {
+                // Android 13+ 需要通知权限
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) 
+                        != PackageManager.PERMISSION_GRANTED) {
+                        // 先请求通知权限，请求完成后由回调处理
+                        // 这里简单处理：提示用户后再试
+                        Toast.makeText(context, "请授予通知权限后重试", Toast.LENGTH_SHORT).show()
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        return@runOnUiThread
+                    }
+                }
+                ForegroundService.start(context, title, content)
+            }
+        }
+
+        /**
+         * 停止前台服务
+         */
+        @android.webkit.JavascriptInterface
+        fun stopForegroundService() {
+            ForegroundService.stop(context)
+        }
+
+        /**
+         * 更新前台服务通知内容（不重启服务）
+         * @param title 新标题
+         * @param content 新内容
+         */
+        @android.webkit.JavascriptInterface
+        fun updateForegroundNotification(title: String, content: String) {
+            ForegroundService.update(context, title, content)
+        }
+
+        /**
+         * 检查前台服务是否运行中
+         * @return true=正在运行
+         */
+        @android.webkit.JavascriptInterface
+        fun isForegroundServiceRunning(): Boolean {
+            return ForegroundService.isRunning(context)
+        }
+
+        // =================================================================
+
         /**
          * 清理缓存
          * @param includeDiskFiles 是否清理磁盘文件（true=清理所有，false=仅清理内存）

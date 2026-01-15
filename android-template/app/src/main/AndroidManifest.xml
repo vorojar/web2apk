@@ -18,6 +18,10 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!-- 生物识别权限（无需运行时请求） -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- 前台服务权限（Android 9+） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 前台服务类型权限（Android 14+），使用 MEDIA_PLAYBACK 覆盖音乐/视频等场景 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
@@ -96,6 +100,12 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info" />
         </receiver>
+
+        <!-- 前台服务：通知栏常驻，进程保活（音乐播放、导航等场景） -->
+        <service
+            android:name="com.webapk.app.ForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>
 
 </manifest>

@@ -284,6 +284,51 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
             'release {\n            minifyEnabled false',
             'release {\n            signingConfig signingConfigs.release\n            minifyEnabled false'
         )
+
+        # 动态注入 Google 登录依赖（只有填写了 Client ID 才添加）
+        if not google_client_id:
+            # 移除 Google Play Services Auth 依赖，减少 APK 体积
+            gradle_content = gradle_content.replace(
+                "    implementation 'com.google.android.gms:play-services-auth:20.7.0'\n", 
+                ""
+            )
+            
+            # 同时移除 MainActivity.kt 中的 Google 登录相关代码
+            main_kt_path = build_dir / 'app' / 'src' / 'main' / 'java' / 'com' / 'webapk' / 'app' / 'MainActivity.kt'
+            main_kt_content = main_kt_path.read_text(encoding='utf-8')
+            
+            # 移除 googleSignInLauncher 声明
+            main_kt_content = main_kt_content.replace(
+                "    // Google 登录相关\n    private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>\n",
+                ""
+            )
+            
+            # 移除 googleSignInLauncher 注册代码（用正则匹配多行）
+            main_kt_content = re.sub(
+                r'\n        // Google 登录结果\n        googleSignInLauncher = registerForActivityResult.*?(?=\n    \})',
+                '',
+                main_kt_content,
+                flags=re.DOTALL
+            )
+            
+            # 替换 Google 登录方法为空实现
+            main_kt_content = re.sub(
+                r'        /\*\*\n         \* 检查 Google 登录是否可用.*?fun loginGoogle\(\) \{.*?\n        \}',
+                '''        @android.webkit.JavascriptInterface
+        fun isGoogleLoginAvailable(): Boolean = false
+
+        @android.webkit.JavascriptInterface
+        fun loginGoogle() {
+            this@MainActivity.runOnUiThread {
+                webView.evaluateJavascript("if(typeof onGoogleLoginError==='function'){onGoogleLoginError(-1,'未启用 Google 登录功能')}", null)
+            }
+        }''',
+                main_kt_content,
+                flags=re.DOTALL
+            )
+            
+            main_kt_path.write_text(main_kt_content, encoding='utf-8')
+
         gradle_path.write_text(gradle_content, encoding='utf-8')
 
         # 修改 AndroidManifest.xml 中的包名和屏幕方向
@@ -383,7 +428,7 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
         print(f"[DEBUG] ANDROID_HOME: {env.get('ANDROID_HOME', 'NOT SET')}")
 
         process = subprocess.Popen(
-            [str(gradle_wrapper), 'assembleRelease', '--no-daemon'],
+            [str(gradle_wrapper), 'clean', 'assembleRelease', '--no-daemon'],
             cwd=str(build_dir),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
