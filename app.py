@@ -137,7 +137,7 @@ def process_icon(icon_path, build_dir):
         return str(e)
 
 
-def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000', pull_to_refresh=False):
+def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000', pull_to_refresh=False, google_client_id=''):
     """构建 APK 的生成器函数
 
     existing_keystore: 可选，用户上传的已有证书信息
@@ -229,6 +229,7 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
 <resources>
     <string name="app_name">{app_name}</string>
     <string name="web_url">{url}</string>
+    <string name="google_client_id">{google_client_id}</string>
 </resources>
 '''
         strings_path.write_text(strings_content, encoding='utf-8')
@@ -460,9 +461,9 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
 生成时间: {time.strftime("%Y-%m-%d %H:%M:%S")}
 '''
 
-        # 获取证书指纹用于 App Links
-        def get_cert_fingerprint(keystore_path, store_password, key_alias):
-            """使用 keytool 获取证书 SHA256 指纹"""
+        # 获取证书指纹用于 App Links 和 Google 登录
+        def get_cert_fingerprints(keystore_path, store_password, key_alias):
+            """使用 keytool 获取证书 SHA1 和 SHA256 指纹"""
             tools_dir = BASE_DIR / 'tools'
             jdk_dirs = list((tools_dir / 'jdk').glob('jdk-*'))
             if jdk_dirs:
@@ -477,15 +478,18 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
                 '-storepass', store_password
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
-            # 从输出中提取 SHA256 指纹
+            # 从输出中提取指纹
+            sha1 = ''
+            sha256 = ''
             for line in result.stdout.split('\n'):
-                if 'SHA256' in line.upper():
-                    # 格式: SHA256: XX:XX:XX:...
-                    fingerprint = line.split(':', 1)[1].strip() if ':' in line else ''
-                    return fingerprint
-            return 'FINGERPRINT_NOT_FOUND'
+                if 'SHA1:' in line.upper():
+                    sha1 = line.split(':', 1)[1].strip() if ':' in line else ''
+                elif 'SHA256:' in line.upper():
+                    sha256 = line.split(':', 1)[1].strip() if ':' in line else ''
+            return sha1 or 'NOT_FOUND', sha256 or 'NOT_FOUND'
 
-        cert_fingerprint = get_cert_fingerprint(keystore_path, store_password, key_alias)
+        sha1_fingerprint, sha256_fingerprint = get_cert_fingerprints(keystore_path, store_password, key_alias)
+        cert_fingerprint = sha256_fingerprint  # 兼容之前的变量名
 
         # 创建 assetlinks.json 内容
         assetlinks_content = f'''[{{
@@ -537,6 +541,51 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
             zf.writestr('.well-known/assetlinks.json', assetlinks_content)
             # 添加 App Links 部署说明
             zf.writestr('链接直达功能配置指南.txt', applinks_guide)
+
+            # 添加 Google 登录配置说明（如果填写了 Client ID）
+            if google_client_id:
+                google_guide = f'''===== {app_name} Google 登录配置指南 =====
+
+【配置状态】
+✅ 已配置 Google Client ID
+
+【重要信息 - 请复制到 Google Cloud Console】
+包名: {package_name}
+SHA-1 证书指纹: {sha1_fingerprint}
+
+【如何填写】
+1. 打开 https://console.cloud.google.com/
+2. 选择您的项目 → API 和服务 → 凭据
+3. 点击您的 OAuth 2.0 客户端 ID（Android 类型）
+4. 在"SHA-1 证书指纹"处填入上面的指纹
+
+【注意事项】
+- 更新 APP 时必须使用同一个证书，否则指纹会变
+- Google 登录仅在有 Google 服务的设备上可用（海外）
+- 国内设备无法使用此功能
+
+生成时间: {time.strftime("%Y-%m-%d %H:%M:%S")}
+'''
+                zf.writestr('Google登录配置指南.txt', google_guide)
+            else:
+                # 没配置也给一个说明
+                google_guide = f'''===== {app_name} Google 登录配置说明 =====
+
+【当前状态】
+⚠️ 未配置 Google Client ID（打包时未填写）
+
+【如需启用 Google 登录】
+1. 访问 https://console.cloud.google.com/ 创建项目
+2. 创建 OAuth 2.0 客户端 ID（选择 Android 类型）
+3. 填写以下信息：
+   包名: {package_name}
+   SHA-1 证书指纹: {sha1_fingerprint}
+4. 获取 Client ID 后，重新打包 APK 并填入
+
+【注意】
+此功能仅海外设备可用，国内设备因无 Google 服务无法使用。
+'''
+                zf.writestr('Google登录配置说明.txt', google_guide)
 
         # 清理构建目录
         shutil.rmtree(build_dir)
@@ -609,8 +658,11 @@ def build():
         else:
             version_name = '1.0'
 
+        # 获取高级功能配置
+        google_client_id = request.form.get('googleClientId', '').strip()
+
         # 返回流式响应
-        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color, pull_to_refresh))
+        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color, pull_to_refresh, google_client_id))
 
     except Exception as e:
         return stream_response([send_error(f'服务器错误: {str(e)}')])

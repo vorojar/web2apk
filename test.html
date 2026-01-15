@@ -247,15 +247,18 @@
             </div>
             <div class="hint" id="biometricResult">点击按钮测试生物识别</div>
         </div>
-        <!-- 微信登录测试 -->
+        <!-- 第三方登录测试 -->
         <div class="card">
-            <h2>💬 微信登录测试</h2>
+            <h2>🔐 第三方登录测试</h2>
             <div class="btn-group">
+                <button class="btn btn-download" onclick="testGoogleLogin()">
+                    <span class="icon">🌐</span> Google 登录
+                </button>
                 <button class="btn btn-wechat" onclick="loginWechat()">
                     <span class="icon">💬</span> 微信登录
                 </button>
             </div>
-            <div class="hint" id="wechatResult">点击按钮唤起微信授权</div>
+            <div class="hint" id="loginResult">点击按钮测试第三方登录（Google 仅海外可用）</div>
         </div>
         <!-- 扫码测试 -->
         <div class="card">
@@ -581,6 +584,49 @@
 
             Web2APK.vibrate(1000);  // 振动 1000 毫秒
             result.textContent = '📳 已振动 1000ms';
+        }
+
+        // 测试 Google 登录
+        function testGoogleLogin() {
+            var result = document.getElementById('loginResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            // 检查是否可用
+            if (!Web2APK.isGoogleLoginAvailable()) {
+                result.textContent = '❌ Google 登录不可用（未配置 Client ID 或无 Google 服务）';
+                result.style.color = '#ff4444';
+                return;
+            }
+            result.textContent = '🌐 正在唤起 Google 登录...';
+            result.style.color = '#888';
+            Web2APK.loginGoogle();
+        }
+
+        // Google 登录成功回调
+        function onGoogleLoginSuccess(idToken, email, displayName, photoUrl) {
+            var result = document.getElementById('loginResult');
+            result.innerHTML = '✅ Google 登录成功！<br>' +
+                '👤 ' + displayName + '<br>' +
+                '📧 ' + email;
+            result.style.color = '#07C160';
+            console.log('ID Token:', idToken);
+            console.log('Photo URL:', photoUrl);
+        }
+
+        // Google 登录失败回调
+        function onGoogleLoginError(code, message) {
+            var result = document.getElementById('loginResult');
+            result.textContent = '❌ Google 登录失败: ' + message;
+            result.style.color = '#ff4444';
+        }
+
+        // 微信登录（未实现）
+        function loginWechat() {
+            var result = document.getElementById('loginResult');
+            result.textContent = '⚠️ 微信登录尚未实现（需企业资质）';
+            result.style.color = '#888';
         }
         //分享测试
         function testShare() {

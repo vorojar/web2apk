@@ -81,6 +81,9 @@ class MainActivity : AppCompatActivity() {
     // 通知权限相关
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
 
+    // Google 登录相关
+    private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
+
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -211,6 +214,35 @@ class MainActivity : AppCompatActivity() {
         notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
                 Toast.makeText(this, "需要通知权限才能接收提醒", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Google 登录结果
+        googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            try {
+                val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+                // 登录成功，获取用户信息
+                val idToken = account.idToken ?: ""
+                val email = account.email ?: ""
+                val displayName = account.displayName ?: ""
+                val photoUrl = account.photoUrl?.toString() ?: ""
+                // 转义单引号
+                val safeToken = idToken.replace("'", "\\'")
+                val safeEmail = email.replace("'", "\\'")
+                val safeName = displayName.replace("'", "\\'")
+                val safePhoto = photoUrl.replace("'", "\\'")
+                webView.evaluateJavascript(
+                    "if(typeof onGoogleLoginSuccess==='function'){onGoogleLoginSuccess('$safeToken','$safeEmail','$safeName','$safePhoto')}",
+                    null
+                )
+            } catch (e: com.google.android.gms.common.api.ApiException) {
+                val errorCode = e.statusCode
+                val errorMessage = e.message?.replace("'", "\\'") ?: "登录失败"
+                webView.evaluateJavascript(
+                    "if(typeof onGoogleLoginError==='function'){onGoogleLoginError($errorCode,'$errorMessage')}",
+                    null
+                )
             }
         }
     }
@@ -1301,6 +1333,60 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {
                     e.printStackTrace()
                     webView.evaluateJavascript("if(typeof onAuthError==='function'){onAuthError(-1,'${e.message?.replace("'", "\\'") ?: "未知错误"}')}", null)
+                }
+            }
+        }
+
+        /**
+         * 检查 Google 登录是否可用
+         * @return true=已配置 Client ID 且设备支持
+         */
+        @android.webkit.JavascriptInterface
+        fun isGoogleLoginAvailable(): Boolean {
+            val clientId = context.getString(R.string.google_client_id)
+            if (clientId.isNullOrEmpty()) return false
+            // 检查 Google Play Services 是否可用
+            return com.google.android.gms.common.GoogleApiAvailability.getInstance()
+                .isGooglePlayServicesAvailable(context) == com.google.android.gms.common.ConnectionResult.SUCCESS
+        }
+
+        /**
+         * 发起 Google 登录
+         * 结果通过 onGoogleLoginSuccess(idToken, email, displayName, photoUrl) 或 onGoogleLoginError(code, message) 回调
+         */
+        @android.webkit.JavascriptInterface
+        fun loginGoogle() {
+            val clientId = context.getString(R.string.google_client_id)
+            if (clientId.isNullOrEmpty()) {
+                this@MainActivity.runOnUiThread {
+                    webView.evaluateJavascript(
+                        "if(typeof onGoogleLoginError==='function'){onGoogleLoginError(-1,'未配置 Google Client ID')}",
+                        null
+                    )
+                }
+                return
+            }
+
+            this@MainActivity.runOnUiThread {
+                try {
+                    val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                        com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                    )
+                        .requestIdToken(clientId)
+                        .requestEmail()
+                        .requestProfile()
+                        .build()
+
+                    val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(this@MainActivity, gso)
+                    val signInIntent = googleSignInClient.signInIntent
+                    googleSignInLauncher.launch(signInIntent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    val errorMessage = e.message?.replace("'", "\\'") ?: "未知错误"
+                    webView.evaluateJavascript(
+                        "if(typeof onGoogleLoginError==='function'){onGoogleLoginError(-1,'$errorMessage')}",
+                        null
+                    )
                 }
             }
         }

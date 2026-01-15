@@ -572,6 +572,55 @@
                     </div>
                 </div>
 
+                <!-- 高级功能（海外） -->
+                <div class="keystore-section">
+                    <label class="keystore-toggle" id="advancedToggle">
+                        <input type="checkbox" id="showAdvanced">
+                        <span>高级功能（海外）</span>
+                    </label>
+                    <div class="keystore-fields" id="advancedFields">
+                        <div class="form-group">
+                            <label for="googleClientId">Google 登录 <strong>Web</strong> Client ID（可选）</label>
+                            <input type="text" id="googleClientId" placeholder="格式: xxx.apps.googleusercontent.com">
+                            <div style="margin-top: 6px;">
+                                <span style="color: #0078d4; font-size: 11px; cursor: pointer;"
+                                    onclick="document.getElementById('googleGuide').style.display = document.getElementById('googleGuide').style.display === 'none' ? 'block' : 'none'">
+                                    需创建两个客户端，查看配置指南 ▼
+                                </span>
+                                <span style="color: #888; font-size: 11px; margin-left: 8px;">
+                                    <a href="https://console.cloud.google.com/" target="_blank">申请地址</a>
+                                </span>
+                            </div>
+                            <!-- 折叠的配置指南 -->
+                            <div id="googleGuide"
+                                style="display: none; background: #f8f9fa; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 12px; line-height: 1.6;">
+                                <div style="font-weight: bold; margin-bottom: 8px; color: #333;">📖 Google 登录配置指南</div>
+                                <div style="color: #555;">
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>步骤 1：首次生成 APK</strong><br>
+                                        先不填 Client ID，生成 APK 后在 ZIP 包中获取 SHA-1 指纹
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>步骤 2：创建 Android 客户端</strong><br>
+                                        在 Google Cloud Console 创建 OAuth 客户端（Android 类型）<br>
+                                        • 填入包名（与上方填写的一致）<br>
+                                        • 填入 SHA-1 指纹（来自 ZIP 包）
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>步骤 3：创建 Web 客户端</strong><br>
+                                        再创建一个 OAuth 客户端（<strong>Web 应用</strong>类型）<br>
+                                        <span style="color: #e74c3c;">⚠️ 复制这个 Client ID 填到上方输入框！</span>
+                                    </div>
+                                    <div>
+                                        <strong>步骤 4：重新生成 APK</strong><br>
+                                        使用原证书 + Web Client ID 重新打包即可
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn" id="submitBtn">生成 APK</button>
             </form>
         </div>
@@ -622,6 +671,17 @@
                 keystoreFields.classList.add('active');
             } else {
                 keystoreFields.classList.remove('active');
+            }
+        });
+
+        // 高级功能切换
+        const showAdvanced = document.getElementById('showAdvanced');
+        const advancedFields = document.getElementById('advancedFields');
+        showAdvanced.addEventListener('change', function () {
+            if (this.checked) {
+                advancedFields.classList.add('active');
+            } else {
+                advancedFields.classList.remove('active');
             }
         });
 
@@ -726,6 +786,12 @@
                 formData.append('keyAlias', keyAlias.value || 'key0');
                 formData.append('keyPassword', keyPassword.value || keystorePassword.value);
                 formData.append('versionName', document.getElementById('versionName').value || '1.0');
+            }
+
+            // 添加高级功能配置
+            const googleClientId = document.getElementById('googleClientId').value;
+            if (googleClientId) {
+                formData.append('googleClientId', googleClientId);
             }
 
             progressContainer.classList.add('active');

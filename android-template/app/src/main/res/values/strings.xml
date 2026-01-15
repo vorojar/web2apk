@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">WebAPK</string>
     <string name="web_url">https://example.com</string>
+    <!-- Google 登录 Client ID（可选，海外功能）-->
+    <string name="google_client_id"></string>
 </resources>
