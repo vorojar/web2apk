@@ -81,6 +81,19 @@
 
         <!-- 通知广播接收器 -->
         <receiver android:name="com.webapk.app.NotificationReceiver" />
+
+        <!-- 桌面小组件 -->
+        <receiver
+            android:name="com.webapk.app.WidgetProvider"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
     </application>
 
 </manifest>

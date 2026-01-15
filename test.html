@@ -224,6 +224,19 @@
             </div>
             <div class="hint" id="cacheResult">点击按钮清理 WebView 缓存</div>
         </div>
+        <!-- 剪贴板测试 -->
+        <div class="card">
+            <h2>📋 剪贴板测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testCopyClipboard()">
+                    <span class="icon">📋</span> 复制测试文字
+                </button>
+                <button class="btn btn-camera" onclick="testReadClipboard()">
+                    <span class="icon">📖</span> 读取剪贴板
+                </button>
+            </div>
+            <div class="hint" id="clipboardResult">点击按钮测试剪贴板功能</div>
+        </div>
         <!-- 微信登录测试 -->
         <div class="card">
             <h2>💬 微信登录测试</h2>
@@ -256,6 +269,19 @@
                 </button>
             </div>
             <div class="hint" id="deviceResult">点击按钮测试设备控制</div>
+        </div>
+        <!-- 桌面小组件测试 -->
+        <div class="card">
+            <h2>📌 桌面小组件测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testUpdateWidget()">
+                    <span class="icon">🔄</span> 更新小组件内容
+                </button>
+                <button class="btn btn-camera" onclick="testPinWidget()">
+                    <span class="icon">📌</span> 添加到桌面
+                </button>
+            </div>
+            <div class="hint" id="widgetResult">点击按钮测试桌面小组件</div>
         </div>
         <!-- 分享测试 -->
         <div class="card">
@@ -678,6 +704,131 @@
 
         // 监听系统切换
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkDark);
+
+        // // 更新桌面小组件（已实现）
+        function updateWidget() {
+            if (typeof Web2APK === 'undefined') return;
+
+            Web2APK.updateWidget(JSON.stringify({
+                title: "今日待办",           // 必填：标题
+                content: "3 项未完成",        // 必填：内容
+                subtitle: "最近：买菜",       // 可选：副标题
+                icon: "📋",                  // 可选：Emoji 图标
+                badge: 3,                    // 可选：角标数字（0 则不显示）
+                clickUrl: "/todo/list"       // 可选：点击跳转路径（默认首页）
+            }));
+        }
+
+        // 页面加载后更新
+        document.addEventListener('DOMContentLoaded', updateWidget);
+
+        // 数据变化时更新
+        function onDataChange() {
+            // 你的业务逻辑...
+            updateWidget();
+        }
+
+        // 测试更新小组件
+        function testUpdateWidget() {
+            var result = document.getElementById('widgetResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            Web2APK.updateWidget(JSON.stringify({
+                title: "Web2APK 测试",
+                content: "小组件更新成功！",
+                subtitle: new Date().toLocaleTimeString(),
+                icon: "✅",
+                badge: Math.floor(Math.random() * 10) + 1
+            }));
+            result.textContent = '✅ 小组件内容已更新';
+            result.style.color = '#07C160';
+        }
+
+        // 请求添加小组件到桌面
+        function testPinWidget() {
+            var result = document.getElementById('widgetResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            var success = Web2APK.requestPinWidget();
+            if (success) {
+                result.textContent = '📌 请在弹出的对话框中确认添加';
+                result.style.color = '#07C160';
+            } else {
+                result.textContent = '❌ 您的设备不支持此功能';
+                result.style.color = '#ff4444';
+            }
+        }
+
+        // 复制到剪贴板
+        function testCopyClipboard() {
+            var result = document.getElementById('clipboardResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            var testText = '淘口令￥test123￥ 复制于 ' + new Date().toLocaleTimeString();
+            Web2APK.copyToClipboard(testText);
+            result.textContent = '✅ 已复制: ' + testText;
+            result.style.color = '#07C160';
+        }
+
+        // 读取剪贴板
+        function testReadClipboard() {
+            var result = document.getElementById('clipboardResult');
+            if (typeof Web2APK === 'undefined') {
+                result.textContent = '⚠️ 未检测到 Web2APK 环境';
+                return;
+            }
+            var text = Web2APK.readClipboard();
+            if (text) {
+                result.textContent = '📖 剪贴板内容: ' + text;
+                result.style.color = '#07C160';
+                // 自动检测常见格式
+                if (text.includes('￥')) {
+                    result.textContent += '\n🎁 检测到淘宝口令！';
+                } else if (text.includes('douyin.com') || text.includes('tiktok.com')) {
+                    result.textContent += '\n🎬 检测到报音/TikTok链接！';
+                } else if (text.match(/^https?:\/\//)) {
+                    result.textContent += '\n🔗 检测到网址！';
+                }
+            } else {
+                result.textContent = '💭 剪贴板为空';
+                result.style.color = '#888';
+            }
+        }
+
+        // 设置快捷方式（长按图标菜单）
+        function setupShortcuts() {
+            if (typeof Web2APK === 'undefined') return;
+
+            Web2APK.setShortcuts(JSON.stringify([
+                {
+                    id: "scan",
+                    label: "扫一扫",
+                    icon: "📷",
+                    url: "/scan"
+                },
+                {
+                    id: "orders",
+                    label: "我的订单",
+                    icon: "📦",
+                    url: "/user/orders"
+                },
+                {
+                    id: "cart",
+                    label: "购物车",
+                    icon: "🛒",
+                    url: "/cart"
+                }
+            ]));
+        }
+
+        // 页面加载后设置
+        document.addEventListener('DOMContentLoaded', setupShortcuts);
     </script>
     <script>
         // 初始化 Plyr 播放器

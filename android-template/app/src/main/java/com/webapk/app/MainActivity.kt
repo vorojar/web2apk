@@ -1080,5 +1080,167 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        /**
+         * 更新桌面小组件
+         * @param jsonData JSON 格式的数据: {title, content, subtitle?, icon?, badge?, clickUrl?}
+         */
+        @android.webkit.JavascriptInterface
+        fun updateWidget(jsonData: String) {
+            try {
+                val json = org.json.JSONObject(jsonData)
+                val title = json.optString("title", null)
+                val content = json.optString("content", null)
+                val subtitle = json.optString("subtitle", null)
+                val icon = json.optString("icon", null)
+                val badge = json.optInt("badge", 0)
+                val clickUrl = json.optString("clickUrl", null)
+
+                WidgetProvider.saveWidgetData(
+                    context,
+                    title,
+                    content,
+                    subtitle,
+                    icon,
+                    badge,
+                    clickUrl
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        /**
+         * 请求将小组件固定到桌面（Android 8.0+）
+         * 会弹出系统对话框让用户确认
+         * @return true=请求已发送, false=不支持或失败
+         */
+        @android.webkit.JavascriptInterface
+        fun requestPinWidget(): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                return false
+            }
+            return try {
+                val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
+                if (!appWidgetManager.isRequestPinAppWidgetSupported) {
+                    return false
+                }
+                val widgetProvider = android.content.ComponentName(context, WidgetProvider::class.java)
+                appWidgetManager.requestPinAppWidget(widgetProvider, null, null)
+                true
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+
+        /**
+         * 设置快捷方式（长按图标菜单）
+         * @param jsonArray JSON 数组: [{id, label, icon?, url}]
+         * Android 最多支持 4 个动态快捷方式
+         */
+        @android.webkit.JavascriptInterface
+        fun setShortcuts(jsonArray: String) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
+                return // Android 7.1+ 才支持
+            }
+            try {
+                val shortcutManager = context.getSystemService(android.content.pm.ShortcutManager::class.java)
+                val jsonArr = org.json.JSONArray(jsonArray)
+                val shortcuts = mutableListOf<android.content.pm.ShortcutInfo>()
+                val baseUrl = context.getString(R.string.web_url).trimEnd('/')
+
+                for (i in 0 until minOf(jsonArr.length(), 4)) { // 最多 4 个
+                    val item = jsonArr.getJSONObject(i)
+                    val id = item.getString("id")
+                    val label = item.getString("label")
+                    val icon = item.optString("icon", null)
+                    val urlPath = item.getString("url")
+                    val fullUrl = if (urlPath.startsWith("http")) urlPath else baseUrl + urlPath
+
+                    val intent = Intent(context, MainActivity::class.java).apply {
+                        action = Intent.ACTION_VIEW
+                        data = Uri.parse(fullUrl)
+                    }
+
+                    val shortcutIcon = if (!icon.isNullOrEmpty()) {
+                        // Emoji 转 Bitmap
+                        createEmojiIcon(icon)
+                    } else {
+                        // 使用 APP 图标
+                        android.graphics.drawable.Icon.createWithResource(context, R.mipmap.ic_launcher)
+                    }
+
+                    val shortcut = android.content.pm.ShortcutInfo.Builder(context, id)
+                        .setShortLabel(label)
+                        .setLongLabel(label)
+                        .setIcon(shortcutIcon)
+                        .setIntent(intent)
+                        .build()
+
+                    shortcuts.add(shortcut)
+                }
+
+                shortcutManager?.dynamicShortcuts = shortcuts
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        /**
+         * 将 Emoji 转换为图标
+         */
+        private fun createEmojiIcon(emoji: String): android.graphics.drawable.Icon {
+            val size = 108 // 自适应图标尺寸
+            val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            
+            // 绘制圆形背景
+            val bgPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.parseColor("#F0F0F0")
+                isAntiAlias = true
+            }
+            canvas.drawCircle(size / 2f, size / 2f, size / 2f, bgPaint)
+            
+            // 绘制 Emoji
+            val paint = android.graphics.Paint().apply {
+                textSize = size * 0.5f
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            val y = size / 2f - (paint.descent() + paint.ascent()) / 2
+            canvas.drawText(emoji, size / 2f, y, paint)
+
+            return android.graphics.drawable.Icon.createWithBitmap(bitmap)
+        }
+
+        /**
+         * 复制文字到剪贴板
+         * @param text 要复制的文字
+         */
+        @android.webkit.JavascriptInterface
+        fun copyToClipboard(text: String) {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Web2APK", text)
+            clipboard.setPrimaryClip(clip)
+        }
+
+        /**
+         * 读取剪贴板内容
+         * @return 剪贴板文字，无内容返回空字符串
+         */
+        @android.webkit.JavascriptInterface
+        fun readClipboard(): String {
+            return try {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                if (clipboard.hasPrimaryClip() && clipboard.primaryClipDescription?.hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN) == true) {
+                    clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                } else {
+                    ""
+                }
+            } catch (e: Exception) {
+                ""
+            }
+        }
     }
 }
