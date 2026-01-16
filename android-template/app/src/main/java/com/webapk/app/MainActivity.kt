@@ -270,8 +270,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRetryButton() {
         retryButton.setOnClickListener {
+            if (getNetworkStatus() == "none") {
+                Toast.makeText(this, "网络不可用，请检查网络设置", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             hideError()
-            webView.reload()
+            val currentUrl = webView.url
+            if (currentUrl.isNullOrEmpty() || currentUrl == "about:blank") {
+                webView.loadUrl(getString(R.string.web_url))
+            } else {
+                webView.reload()
+            }
         }
         exitButton.setOnClickListener {
             finishAffinity() // 退出应用（包括所有 Activity）
@@ -828,7 +837,7 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
             if (hasError) {
-                hideError()
+                finishAffinity()  // 错误页按返回键直接退出
                 return true
             }
             if (webView.canGoBack()) {
