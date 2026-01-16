@@ -932,7 +932,7 @@ class MainActivity : AppCompatActivity() {
         return when {
             hasVpn && hasWifi -> "vpn+wifi"
             hasVpn && hasMobile -> "vpn+mobile"
-            hasVpn -> "vpn"
+            hasVpn -> "none"  // 只有 VPN 没有底层网络 = 无网
             hasWifi -> "wifi"
             hasMobile -> "mobile"
             else -> "other"
