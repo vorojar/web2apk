@@ -85,6 +85,10 @@ class MainActivity : AppCompatActivity() {
     // Google 登录相关
     private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
 
+    // JS 相机接口相关
+    private lateinit var jsCameraLauncher: ActivityResultLauncher<Uri>
+    private var jsCameraPhotoUri: Uri? = null
+
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -246,6 +250,43 @@ class MainActivity : AppCompatActivity() {
                     null
                 )
             }
+        }
+
+        // JS 相机接口结果（非表单拍照）
+        jsCameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success && jsCameraPhotoUri != null) {
+                try {
+                    // 读取图片并转为 Base64
+                    val inputStream = contentResolver.openInputStream(jsCameraPhotoUri!!)
+                    val bytes = inputStream?.readBytes()
+                    inputStream?.close()
+                    if (bytes != null) {
+                        val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                        val dataUrl = "data:image/jpeg;base64,$base64"
+                        webView.evaluateJavascript(
+                            "if(typeof onCameraResult==='function'){onCameraResult('$dataUrl')}",
+                            null
+                        )
+                    } else {
+                        webView.evaluateJavascript(
+                            "if(typeof onCameraError==='function'){onCameraError('读取图片失败')}",
+                            null
+                        )
+                    }
+                } catch (e: Exception) {
+                    val errorMsg = e.message?.replace("'", "\\'") ?: "未知错误"
+                    webView.evaluateJavascript(
+                        "if(typeof onCameraError==='function'){onCameraError('$errorMsg')}",
+                        null
+                    )
+                }
+            } else {
+                webView.evaluateJavascript(
+                    "if(typeof onCameraError==='function'){onCameraError('拍照取消')}",
+                    null
+                )
+            }
+            jsCameraPhotoUri = null
         }
     }
 
@@ -624,6 +665,26 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
             filePathCallback?.onReceiveValue(null)
             filePathCallback = null
+        }
+    }
+
+    // JS 相机接口专用启动方法
+    private fun launchJsCamera() {
+        try {
+            val photoFile = createImageFile()
+            jsCameraPhotoUri = FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                photoFile
+            )
+            jsCameraLauncher.launch(jsCameraPhotoUri)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMsg = e.message?.replace("'", "\\'") ?: "未知错误"
+            webView.evaluateJavascript(
+                "if(typeof onCameraError==='function'){onCameraError('$errorMsg')}",
+                null
+            )
         }
     }
 
@@ -1038,6 +1099,183 @@ class MainActivity : AppCompatActivity() {
         fun scanQRCode() {
             val intent = Intent(context, ScanActivity::class.java)
             scanLauncher.launch(intent)
+        }
+
+        // ==================== 设备信息接口 ====================
+
+        /**
+         * 获取设备信息（JSON 格式）
+         * @return {model, brand, manufacturer, device, androidVersion, sdkLevel, appVersion, packageName, deviceId}
+         */
+        @android.webkit.JavascriptInterface
+        fun getDeviceInfo(): String {
+            val json = org.json.JSONObject()
+            try {
+                json.put("model", Build.MODEL)                    // 设备型号，如"Pixel 6"
+                json.put("brand", Build.BRAND)                    // 品牌，如"google"
+                json.put("manufacturer", Build.MANUFACTURER)      // 制造商，如"Google"
+                json.put("device", Build.DEVICE)                  // 设备名，如"oriole"
+                json.put("androidVersion", Build.VERSION.RELEASE) // Android 版本，如"14"
+                json.put("sdkLevel", Build.VERSION.SDK_INT)       // API 级别，如34
+                json.put("appVersion", getVersion())              // APP 版本号
+                json.put("packageName", context.packageName)      // 包名
+                json.put("deviceId", getDeviceId())               // 设备唯一标识
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return json.toString()
+        }
+
+        /**
+         * 获取设备唯一标识（基于 Android ID）
+         * 注意：Android ID 在恢复出厂设置后会改变
+         */
+        @android.webkit.JavascriptInterface
+        fun getDeviceId(): String {
+            return try {
+                android.provider.Settings.Secure.getString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ANDROID_ID
+                ) ?: ""
+            } catch (e: Exception) {
+                ""
+            }
+        }
+
+        // ==================== 应用评分接口 ====================
+
+        /**
+         * 打开 Google Play 商店当前应用页面（用于评分）
+         * 如果设备没有安装 Google Play，则在浏览器中打开
+         */
+        @android.webkit.JavascriptInterface
+        fun openPlayStore() {
+            try {
+                // 尝试用 Google Play 应用打开
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    data = Uri.parse("market://details?id=${context.packageName}")
+                    setPackage("com.android.vending")
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                // 如果没有 Google Play，用浏览器打开
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")
+                    }
+                    context.startActivity(intent)
+                } catch (e2: Exception) {
+                    e2.printStackTrace()
+                }
+            }
+        }
+
+        // ==================== 图片预览接口 ====================
+
+        /**
+         * 预览单张图片
+         * @param imageUrl 图片URL
+         */
+        @android.webkit.JavascriptInterface
+        fun previewImage(imageUrl: String) {
+            previewImages("[$imageUrl]".replace(imageUrl, "\"$imageUrl\""), 0)
+        }
+
+        /**
+         * 预览多张图片
+         * @param imageUrlsJson 图片URL数组的JSON字符串，如 ["url1", "url2"]
+         * @param position 初始显示第几张（0开始）
+         */
+        @android.webkit.JavascriptInterface
+        fun previewImages(imageUrlsJson: String, position: Int) {
+            try {
+                val jsonArray = org.json.JSONArray(imageUrlsJson)
+                val urls = ArrayList<String>()
+                for (i in 0 until jsonArray.length()) {
+                    urls.add(jsonArray.getString(i))
+                }
+                if (urls.isEmpty()) return
+                
+                runOnUiThread {
+                    val intent = Intent(context, ImagePreviewActivity::class.java).apply {
+                        putStringArrayListExtra(ImagePreviewActivity.EXTRA_IMAGES, urls)
+                        putExtra(ImagePreviewActivity.EXTRA_POSITION, position.coerceIn(0, urls.size - 1))
+                    }
+                    context.startActivity(intent)
+                    (context as? android.app.Activity)?.overridePendingTransition(
+                        android.R.anim.fade_in, 0
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // ==================== 电话/短信接口 ====================
+
+        /**
+         * 拨打电话（跳转到系统拨号界面，需用户点击拨打）
+         * @param phoneNumber 电话号码
+         */
+        @android.webkit.JavascriptInterface
+        fun dialPhone(phoneNumber: String) {
+            try {
+                val intent = Intent(Intent.ACTION_DIAL).apply {
+                    data = Uri.parse("tel:$phoneNumber")
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        /**
+         * 发送短信（跳转到系统短信界面，需用户点击发送）
+         * @param phoneNumber 电话号码
+         * @param message 短信内容（可选）
+         */
+        @android.webkit.JavascriptInterface
+        fun sendSMS(phoneNumber: String, message: String?) {
+            try {
+                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                    data = Uri.parse("smsto:$phoneNumber")
+                    if (!message.isNullOrEmpty()) {
+                        putExtra("sms_body", message)
+                    }
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // ==================== JS 相机接口（非表单） ====================
+
+        /**
+         * 拍照并获取图片（非表单场景）
+         * 结果通过 onCameraResult(dataUrl) 或 onCameraError(message) 回调
+         * @param maxWidth 可选，最大宽度（用于压缩，0 = 不压缩）
+         */
+        @android.webkit.JavascriptInterface
+        fun takePhoto(maxWidth: Int = 0) {
+            this@MainActivity.runOnUiThread {
+                // 检查相机权限
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) 
+                    != PackageManager.PERMISSION_GRANTED) {
+                    // 请求权限后重试
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    return@runOnUiThread
+                }
+                launchJsCamera()
+            }
+        }
+
+        /**
+         * 拍照并获取图片（无参数版本）
+         */
+        @android.webkit.JavascriptInterface
+        fun takePhoto() {
+            takePhoto(0)
         }
 
         /**

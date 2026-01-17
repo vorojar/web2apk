@@ -74,6 +74,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- 图片预览 -->
+        <activity
+            android:name="com.webapk.app.ImagePreviewActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- FileProvider 用于拍照 -->
         <provider
             android:name="androidx.core.content.FileProvider"

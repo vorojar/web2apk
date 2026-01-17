@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAPK 功能测试</title>
+    <link rel="stylesheet" href="styles.css?v=1.0.2">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>📱 WebAPK 功能测试</h1>
+
+        <!-- 网络状态 -->
+        <div class="card" id="card-network">
+            <h2>🌐 网络状态测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-doc" onclick="checkNetwork()">🔍 查询网络状态</button>
+            </div>
+            <div class="hint" id="networkResult">网络状态会实时更新</div>
+        </div>
+
+        <!-- 通知 -->
+        <div class="card" id="card-notification">
+            <h2>🔔 通知测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="sendNotification()">📩 立即通知</button>
+                <button class="btn btn-doc" onclick="scheduleNotification()">⏰ 5秒后提醒</button>
+            </div>
+            <div class="hint" id="notifyResult">点击按钮测试通知功能</div>
+        </div>
+
+        <!-- 状态栏颜色 -->
+        <div class="card" id="card-statusbar">
+            <h2>🎨 状态栏颜色</h2>
+            <div class="btn-group">
+                <button class="btn" style="background:#FF0000" onclick="changeColor('#FF0000')">红色</button>
+                <button class="btn" style="background:#000000" onclick="changeColor('#000000')">黑色</button>
+                <button class="btn" style="background:#FFFFFF;color:#333;border:1px solid #ddd"
+                    onclick="changeColor('#FFFFFF')">白色</button>
+            </div>
+        </div>
+
+        <!-- 缓存清理 -->
+        <div class="card" id="card-cache">
+            <h2>🧹 缓存清理</h2>
+            <div class="btn-group">
+                <button class="btn btn-doc" onclick="clearCache()">🗑️ 清理缓存</button>
+            </div>
+            <div class="hint" id="cacheResult">点击按钮清理 WebView 缓存</div>
+        </div>
+
+        <!-- 剪贴板 -->
+        <div class="card" id="card-clipboard">
+            <h2>📋 剪贴板测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testCopyClipboard()">📋 复制测试文字</button>
+                <button class="btn btn-camera" onclick="testReadClipboard()">📖 读取剪贴板</button>
+            </div>
+            <div class="hint" id="clipboardResult">点击按钮测试剪贴板功能</div>
+        </div>
+
+        <!-- 生物识别 -->
+        <div class="card" id="card-biometric">
+            <h2>🔐 生物识别测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testBiometric()">🔐 指纹/面容验证</button>
+            </div>
+            <div class="hint" id="biometricResult">点击按钮测试生物识别</div>
+        </div>
+
+        <!-- 第三方登录 -->
+        <div class="card" id="card-login">
+            <h2>🔑 第三方登录测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testGoogleLogin()">🌐 Google 登录</button>
+                <button class="btn btn-wechat" onclick="loginWechat()">💬 微信登录</button>
+            </div>
+            <div class="hint" id="loginResult">点击按钮测试第三方登录（Google 仅海外可用）</div>
+        </div>
+
+        <!-- 扫码 -->
+        <div class="card" id="card-scan">
+            <h2>📸 扫码测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="scanQRCode()">🔍 扫描二维码</button>
+            </div>
+            <div class="hint" id="scanResult">点击按钮开始扫码</div>
+        </div>
+
+        <!-- 设备信息 -->
+        <div class="card" id="card-device-info">
+            <h2>📱 设备信息测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testDeviceInfo()">📋 获取设备信息</button>
+                <button class="btn btn-doc" onclick="testDeviceId()">🔑 获取设备ID</button>
+                <button class="btn btn-camera" onclick="getAppVersion()">📱 获取APP版本</button>
+                <button class="btn btn-audio" onclick="showUA()">🔍 显示 User-Agent</button>
+            </div>
+            <div class="hint" id="deviceInfoResult" style="white-space:pre-line;word-break:break-all">点击按钮获取设备信息</div>
+        </div>
+
+        <!-- 电话/短信 -->
+        <div class="card" id="card-phone">
+            <h2>📞 电话/短信测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testDialPhone()">📞 拨打电话 (10086)</button>
+                <button class="btn btn-camera" onclick="testSendSMS()">💬 发送短信</button>
+            </div>
+            <div class="hint" id="phoneResult">点击按钮测试电话/短信功能</div>
+        </div>
+
+        <!-- JS 相机 -->
+        <div class="card" id="card-js-camera">
+            <h2>📷 JS 相机测试（非表单）</h2>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="testTakePhoto()">📷 拍照获取图片</button>
+            </div>
+            <div class="hint" id="jsCameraResult">拍照后图片将显示在下方</div>
+            <div class="preview" id="jsCameraPreview">
+                <div class="preview-title">拍照结果：</div>
+                <div id="jsCameraContent"></div>
+            </div>
+        </div>
+
+        <!-- 图片预览 -->
+        <div class="card" id="card-image-preview">
+            <h2>🖼️ 图片预览测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testPreviewSingle()">🖼️ 预览单张图片</button>
+                <button class="btn btn-camera" onclick="testPreviewMultiple()">📚 预览多张图片</button>
+            </div>
+            <div class="hint" id="imagePreviewResult">点击按钮测试原生图片预览（支持缩放、保存、分享）</div>
+        </div>
+
+        <!-- 设备控制 -->
+        <div class="card" id="card-device-control">
+            <h2>💡 屏幕常亮 & 振动测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="toggleScreenOn()">💡 切换屏幕常亮</button>
+                <button class="btn btn-camera" onclick="testVibrate()">📳 振动反馈</button>
+            </div>
+            <div class="hint" id="deviceResult">点击按钮测试设备控制</div>
+        </div>
+
+        <!-- 前台服务 -->
+        <div class="card" id="card-foreground">
+            <h2>🔔 前台服务（保活）测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="startFgService()">▶️ 启动前台服务</button>
+                <button class="btn btn-camera" onclick="updateFgNotification()">🔄 更新通知内容</button>
+                <button class="btn btn-file" onclick="stopFgService()">⏹️ 停止服务</button>
+            </div>
+            <div class="hint" id="fgServiceResult">适用于音乐播放、导航等需要后台运行的场景</div>
+        </div>
+
+        <!-- 桌面小组件 -->
+        <div class="card" id="card-widget">
+            <h2>📌 桌面小组件测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testUpdateWidget()">🔄 更新小组件内容</button>
+                <button class="btn btn-camera" onclick="testPinWidget()">📌 添加到桌面</button>
+            </div>
+            <div class="hint" id="widgetResult">点击按钮测试桌面小组件</div>
+        </div>
+
+        <!-- 分享 -->
+        <div class="card" id="card-share">
+            <h2>📤 系统分享测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="testShare()">📤 分享到...</button>
+            </div>
+            <div class="hint" id="shareResult">点击按钮测试分享功能</div>
+        </div>
+
+        <!-- 应用评分 -->
+        <div class="card" id="card-rate">
+            <h2>⭐ 应用评分</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="testOpenPlayStore()">⭐ 跳转 Google Play 评分</button>
+            </div>
+            <div class="hint" id="rateResult">点击按钮跳转到应用商店评分页面</div>
+        </div>
+
+        <!-- 位置 -->
+        <div class="card" id="card-location">
+            <h2>📍 位置权限测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="getLocation()">📍 获取当前位置</button>
+            </div>
+            <div class="hint" id="locationResult" style="white-space:pre-line">点击按钮获取 GPS 位置</div>
+        </div>
+
+        <!-- 外链 -->
+        <div class="card" id="card-external">
+            <h2>🔗 外部链接测试</h2>
+            <div class="btn-group">
+                <a href="https://www.ehafo.com" class="btn btn-download">🔍 打开易哈佛</a>
+            </div>
+            <div class="hint">外域链接将在内置浏览器中打开</div>
+        </div>
+
+        <!-- 视频 -->
+        <div class="card" id="card-video">
+            <h2>🎬 视频全屏测试</h2>
+            <div class="video-container">
+                <video id="player" playsinline controls>
+                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4"
+                        type="video/mp4">
+                </video>
+            </div>
+            <div class="hint">点击视频全屏按钮测试全屏功能</div>
+        </div>
+
+        <!-- JS弹窗 -->
+        <div class="card" id="card-dialog">
+            <h2>💬 JS弹窗测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="testAlert()">ℹ️ 测试 alert()</button>
+                <button class="btn btn-doc" onclick="testConfirm()">❓ 测试 confirm()</button>
+                <button class="btn btn-audio" onclick="testPrompt()">✏️ 测试 prompt()</button>
+            </div>
+            <div class="hint" id="jsResult">点击按钮测试 JS 原生弹窗</div>
+        </div>
+
+        <!-- 文件上传 -->
+        <div class="card" id="card-upload">
+            <h2>📤 文件上传测试</h2>
+            <div class="btn-group">
+                <label class="btn btn-camera">📷 拍照上传<input type="file" accept="image/*" capture="camera"
+                        id="cameraInput"></label>
+                <label class="btn btn-image">🖼️ 选择图片<input type="file" accept="image/*" id="imageInput"></label>
+                <label class="btn btn-video">🎬 选择视频<input type="file" accept="video/*" id="videoInput"></label>
+                <label class="btn btn-file">📁 选择任意文件<input type="file" id="fileInput"></label>
+            </div>
+            <div class="preview" id="uploadPreview">
+                <div class="preview-title">上传预览：</div>
+                <div id="previewContent"></div>
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+        </div>
+
+        <!-- 文件下载 -->
+        <div class="card" id="card-download">
+            <h2>📥 文件下载测试</h2>
+            <div class="btn-group">
+                <a href="https://kanban.ehafo.com/article_attachment/1823_1763618663702_0/PRD%E8%A7%84%E8%8C%83.pdf"
+                    class="btn btn-pdf">📄 下载 PDF</a>
+                <a href="https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip"
+                    class="btn btn-zip">📦 下载 ZIP</a>
+                <a href="https://calibre-ebook.com/downloads/demos/demo.docx" class="btn btn-doc">📝 下载 Word</a>
+                <a href="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" class="btn btn-audio">🎵 下载
+                    MP3</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="scripts.js?v=1.0.3"></script>
+</body>
+
+</html>
