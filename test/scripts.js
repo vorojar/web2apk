@@ -216,6 +216,70 @@ function testSendSMS() {
     showResult('phoneResult', '💬 正在跳转短信界面...');
 }
 
+// ==================== APP 唤端 ====================
+
+function testGetInstalledApps() {
+    if (!checkWeb2APK('openAppResult')) return;
+    try {
+        const apps = JSON.parse(Web2APK.getInstalledApps());
+        if (apps.length === 0) {
+            showResult('openAppResult', '未检测到常用 APP');
+        } else {
+            const names = apps.map(a => a.name).join('、');
+            showResult('openAppResult', `✅ 已安装: ${names}`);
+        }
+    } catch (e) {
+        showResult('openAppResult', '❌ 检测失败: ' + e.message, false);
+    }
+}
+
+function testOpenTaobao() {
+    if (!checkWeb2APK('openAppResult')) return;
+    // 打开淘宝，未安装则打开网页版
+    const success = Web2APK.openAppOrFallback(
+        'taobao://m.taobao.com',
+        'https://m.taobao.com'
+    );
+    if (success) {
+        showResult('openAppResult', '✅ 正在打开淘宝 APP...');
+    } else {
+        showResult('openAppResult', '⚠️ 淘宝未安装，已打开网页版');
+    }
+}
+
+function testOpenWeixin() {
+    if (!checkWeb2APK('openAppResult')) return;
+    const success = Web2APK.openApp('weixin://');
+    if (success) {
+        showResult('openAppResult', '✅ 正在打开微信...');
+    } else {
+        showResult('openAppResult', '❌ 微信未安装', false);
+    }
+}
+
+function testOpenMap() {
+    if (!checkWeb2APK('openAppResult')) return;
+    // 尝试打开高德地图导航到天安门
+    const lat = 39.908823;
+    const lng = 116.397470;
+    const name = '天安门';
+
+    // 先检测安装了哪个地图
+    if (Web2APK.isAppInstalled('com.autonavi.minimap')) {
+        // 高德地图
+        Web2APK.openApp(`amapuri://route/plan?dlat=${lat}&dlon=${lng}&dname=${encodeURIComponent(name)}&dev=0&t=0`);
+        showResult('openAppResult', '✅ 正在打开高德地图导航...');
+    } else if (Web2APK.isAppInstalled('com.baidu.BaiduMap')) {
+        // 百度地图
+        Web2APK.openApp(`baidumap://map/direction?destination=${lat},${lng}&destination_name=${encodeURIComponent(name)}&mode=driving`);
+        showResult('openAppResult', '✅ 正在打开百度地图导航...');
+    } else {
+        // 都没有，打开网页版高德
+        Web2APK.openApp(`https://uri.amap.com/navigation?to=${lng},${lat},${encodeURIComponent(name)}`);
+        showResult('openAppResult', '⚠️ 未安装地图 APP，已打开网页版');
+    }
+}
+
 // ==================== JS 相机 ====================
 
 function testTakePhoto() {

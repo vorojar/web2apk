@@ -1358,6 +1358,112 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // ==================== APP 唤端接口 ====================
+
+        /**
+         * 打开其他 APP（通过 URL Scheme / Deep Link）
+         * @param uri APP 的 URI，如 taobao://item.taobao.com/item.htm?id=123
+         * @return true=成功打开，false=APP 未安装或 URI 无效
+         *
+         * 常用 URI 示例：
+         * - 淘宝商品：taobao://item.taobao.com/item.htm?id=商品ID
+         * - 小红书帖子：xhsdiscover://item/帖子ID
+         * - 抖音：snssdk1128://
+         * - 微信：weixin://
+         * - 支付宝：alipays://
+         * - 高德导航：amapuri://route/plan?dlat=纬度&dlon=经度&dname=目的地
+         * - 百度地图：baidumap://map/direction?destination=纬度,经度&mode=driving
+         */
+        @android.webkit.JavascriptInterface
+        fun openApp(uri: String): Boolean {
+            return try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        /**
+         * 打开其他 APP，未安装则跳转备用网页
+         * @param uri APP 的 URI
+         * @param fallbackUrl 备用网页地址（APP 未安装时打开）
+         * @return true=打开了 APP，false=打开了备用网页
+         */
+        @android.webkit.JavascriptInterface
+        fun openAppOrFallback(uri: String, fallbackUrl: String): Boolean {
+            val success = openApp(uri)
+            if (!success && fallbackUrl.isNotEmpty()) {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fallbackUrl))
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            return success
+        }
+
+        /**
+         * 检测 APP 是否已安装
+         * @param packageName APP 包名，如 com.taobao.taobao
+         * @return true=已安装
+         *
+         * 常用包名：
+         * - 淘宝：com.taobao.taobao
+         * - 京东：com.jingdong.app.mall
+         * - 小红书：com.xingin.xhs
+         * - 抖音：com.ss.android.ugc.aweme
+         * - 微信：com.tencent.mm
+         * - 支付宝：com.eg.android.AlipayGphone
+         * - 高德地图：com.autonavi.minimap
+         * - 百度地图：com.baidu.BaiduMap
+         */
+        @android.webkit.JavascriptInterface
+        fun isAppInstalled(packageName: String): Boolean {
+            return try {
+                context.packageManager.getPackageInfo(packageName, 0)
+                true
+            } catch (e: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
+
+        /**
+         * 获取已安装的常用 APP 列表
+         * @return JSON 数组，包含已安装的 APP 信息 [{name, packageName, scheme}]
+         */
+        @android.webkit.JavascriptInterface
+        fun getInstalledApps(): String {
+            val apps = listOf(
+                Triple("淘宝", "com.taobao.taobao", "taobao://"),
+                Triple("京东", "com.jingdong.app.mall", "openapp.jdmobile://"),
+                Triple("小红书", "com.xingin.xhs", "xhsdiscover://"),
+                Triple("抖音", "com.ss.android.ugc.aweme", "snssdk1128://"),
+                Triple("微信", "com.tencent.mm", "weixin://"),
+                Triple("支付宝", "com.eg.android.AlipayGphone", "alipays://"),
+                Triple("高德地图", "com.autonavi.minimap", "amapuri://"),
+                Triple("百度地图", "com.baidu.BaiduMap", "baidumap://"),
+                Triple("美团", "com.sankuai.meituan", "imeituan://"),
+                Triple("饿了么", "com.ele.me", "eleme://"),
+                Triple("拼多多", "com.xunmeng.pinduoduo", "pinduoduo://")
+            )
+
+            val installed = apps.filter { isAppInstalled(it.second) }
+            val jsonArray = org.json.JSONArray()
+            for (app in installed) {
+                val obj = org.json.JSONObject()
+                obj.put("name", app.first)
+                obj.put("packageName", app.second)
+                obj.put("scheme", app.third)
+                jsonArray.put(obj)
+            }
+            return jsonArray.toString()
+        }
+
         // ==================== 图片预览接口 ====================
 
         /**
