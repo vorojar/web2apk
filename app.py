@@ -137,8 +137,8 @@ def process_icon(icon_path, build_dir):
         return str(e)
 
 
-def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000', pull_to_refresh=False, google_client_id='', fcm_config_path=None):
-    """构建 APK 的生成器函数
+def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000', pull_to_refresh=False, google_client_id='', fcm_config_path=None, output_format='apk'):
+    """构建 APK/AAB 的生成器函数
 
     existing_keystore: 可选，用户上传的已有证书信息
         {
@@ -154,6 +154,7 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
     status_bar_color: 状态栏颜色 (十六进制颜色值)
     pull_to_refresh: 是否启用下拉刷新
     fcm_config_path: FCM 配置文件路径 (google-services.json)
+    output_format: 输出格式 ('apk' 或 'aab')
     """
     build_id = str(uuid.uuid4())[:8]
     build_dir = OUTPUT_DIR / f'build_{build_id}'
@@ -543,7 +544,8 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
         yield send_done('配置修改完成')
 
         # 步骤 6: 执行 Gradle 构建
-        yield send_progress('开始编译 APK (这可能需要几分钟)...', 40)
+        format_label = output_format.upper()
+        yield send_progress(f'开始编译 {format_label} (这可能需要几分钟)...', 40)
 
         # 设置 Gradle 环境
         gradle_wrapper = build_dir / 'gradlew.bat' if sys.platform == 'win32' else build_dir / 'gradlew'
@@ -551,7 +553,7 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
         if sys.platform != 'win32':
             os.chmod(gradle_wrapper, 0o755)
 
-        # 执行构建
+        # 执行构建 - 根据格式选择不同命令
         env = os.environ.copy()
 
         # 自动检测并设置环境变量
@@ -566,9 +568,13 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
         # 打印环境变量用于调试
         print(f"[DEBUG] JAVA_HOME: {env.get('JAVA_HOME', 'NOT SET')}")
         print(f"[DEBUG] ANDROID_HOME: {env.get('ANDROID_HOME', 'NOT SET')}")
+        print(f"[DEBUG] Output format: {output_format}")
+
+        # 根据输出格式选择构建任务
+        build_task = 'bundleRelease' if output_format == 'aab' else 'assembleRelease'
 
         process = subprocess.Popen(
-            [str(gradle_wrapper), 'clean', 'assembleRelease', '--no-daemon'],
+            [str(gradle_wrapper), 'clean', build_task, '--no-daemon'],
             cwd=str(build_dir),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -594,9 +600,9 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
                 elif 'PROCESSING' in line.upper():
                     build_progress = min(build_progress + 3, 80)
                     yield send_progress('处理资源...', build_progress)
-                elif 'PACKAGING' in line.upper() or 'PACKAGE' in line.upper():
+                elif 'PACKAGING' in line.upper() or 'PACKAGE' in line.upper() or 'BUNDLE' in line.upper():
                     build_progress = 85
-                    yield send_progress('打包 APK...', build_progress)
+                    yield send_progress(f'打包 {format_label}...', build_progress)
                 elif 'BUILD SUCCESSFUL' in line.upper():
                     build_progress = 95
                     yield send_progress('构建成功!', build_progress)
@@ -611,15 +617,22 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
             yield send_error(f'Gradle 构建失败: {error_msg}')
             return
 
-        yield send_done('APK 编译完成')
+        yield send_done(f'{format_label} 编译完成')
 
-        # 步骤 7: 打包 APK + 证书 + 说明文件为 ZIP
+        # 步骤 7: 打包输出文件 + 证书 + 说明文件为 ZIP
         yield send_progress('打包下载文件...', 98)
         time.sleep(0.3)
 
-        apk_source = build_dir / 'app' / 'build' / 'outputs' / 'apk' / 'release' / 'app-release.apk'
-        if not apk_source.exists():
-            yield send_error('APK 文件未找到，构建可能失败')
+        # 根据格式查找输出文件
+        if output_format == 'aab':
+            output_source = build_dir / 'app' / 'build' / 'outputs' / 'bundle' / 'release' / 'app-release.aab'
+            output_ext = '.aab'
+        else:
+            output_source = build_dir / 'app' / 'build' / 'outputs' / 'apk' / 'release' / 'app-release.apk'
+            output_ext = '.apk'
+
+        if not output_source.exists():
+            yield send_error(f'{format_label} 文件未找到，构建可能失败')
             return
 
         # 使用应用名作为文件名
@@ -716,8 +729,8 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
 
         # 创建 ZIP 文件
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-            # 添加 APK
-            zf.write(apk_source, f'{safe_name}.apk')
+            # 添加 APK/AAB
+            zf.write(output_source, f'{safe_name}{output_ext}')
             # 添加证书
             zf.write(keystore_path, 'release.keystore')
             # 添加说明文件
@@ -854,8 +867,13 @@ def build():
             fcm_config_path = UPLOAD_DIR / fcm_filename
             fcm_config.save(fcm_config_path)
 
+        # 获取输出格式 (apk 或 aab)
+        output_format = request.form.get('outputFormat', 'apk').strip().lower()
+        if output_format not in ('apk', 'aab'):
+            output_format = 'apk'
+
         # 返回流式响应
-        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color, pull_to_refresh, google_client_id, fcm_config_path))
+        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color, pull_to_refresh, google_client_id, fcm_config_path, output_format))
 
     except Exception as e:
         return stream_response([send_error(f'服务器错误: {str(e)}')])

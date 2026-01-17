@@ -5,238 +5,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>网页转APK生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: '#F9F7F5',
+                        'cream-dark': '#F0EDE8',
+                        'warm-gray': '#E8E4DE',
+                        charcoal: '#2D2D2D',
+                        accent: '#D4A373',
+                        'accent-dark': '#B8956A',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        * {
-            margin: 0;
+        /* 纯 CSS，不使用 @apply */
+        .color-picker::-webkit-color-swatch-wrapper {
             padding: 0;
-            box-sizing: border-box;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
-            padding: 25px 30px;
-            width: 100%;
-            max-width: 420px;
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 4px;
-            color: #555;
-            font-weight: 500;
-            font-size: 13px;
-        }
-
-        input[type="text"],
-        input[type="url"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 13px;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .icon-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .icon-upload {
-            border: 2px dashed #e0e0e0;
-            border-radius: 8px;
-            padding: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .icon-upload:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-
-        .icon-upload input {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        .icon-preview {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .icon-preview img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        .icon-preview-placeholder {
-            color: #999;
-            font-size: 20px;
-        }
-
-        .icon-hint {
-            color: #888;
-            font-size: 12px;
-            flex: 1;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .color-picker::-webkit-color-swatch {
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 8px;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            margin-top: 8px;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            box-shadow: 0 5px 20px rgba(108, 117, 125, 0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-        }
-
-        .btn-success:hover:not(:disabled) {
-            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
-        }
-
-        .progress-container {
-            display: none;
-            margin-top: 15px;
-        }
-
-        .progress-container.active {
-            display: block;
-        }
-
-        .progress-bar-wrapper {
-            background: #f0f0f0;
             border-radius: 6px;
-            overflow: hidden;
-            height: 6px;
-            margin-bottom: 10px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .progress-status {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 10px;
-            max-height: 120px;
-            overflow-y: auto;
-        }
-
-        .progress-item {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 12px;
-            color: #666;
-            display: flex;
-            align-items: center;
-        }
-
-        .progress-item:last-child {
-            border-bottom: none;
-        }
-
-        .progress-item.current {
-            color: #667eea;
-            font-weight: 500;
-        }
-
-        .progress-item.done {
-            color: #28a745;
-        }
-
-        .progress-item.error {
-            color: #dc3545;
-        }
-
-        .progress-icon {
-            margin-right: 8px;
-            width: 16px;
-            text-align: center;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid #667eea;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
@@ -245,674 +39,620 @@
             }
         }
 
-        .result-section {
-            display: none;
-            margin-top: 15px;
-            text-align: center;
-        }
-
-        .result-section.active {
-            display: block;
-        }
-
-        .success-text {
-            color: #28a745;
-            font-weight: 500;
-            margin-bottom: 6px;
-            font-size: 14px;
-        }
-
-        .result-hint {
-            color: #666;
-            font-size: 12px;
-            margin-bottom: 12px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-group .btn {
-            flex: 1;
-            margin-top: 0;
-        }
-
-        .error-message {
-            background: #fff5f5;
-            border: 1px solid #ffcccc;
-            color: #dc3545;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 12px;
-            display: none;
-            font-size: 13px;
-        }
-
-        .error-message.active {
-            display: block;
-        }
-
-        .form-section {
-            display: block;
-        }
-
-        .form-section.hidden {
-            display: none;
-        }
-
-        .keystore-section {
-            margin: 15px 0;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .keystore-toggle {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-size: 13px;
-            color: #555;
-        }
-
-        .keystore-toggle input {
-            margin-right: 8px;
-            width: 16px;
-            height: 16px;
-        }
-
-        .keystore-fields {
-            display: none;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .keystore-fields.active {
-            display: block;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 10px;
-        }
-
-        .form-group.half {
-            flex: 1;
-        }
-
-        .file-input {
-            width: 100%;
-            padding: 8px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 12px;
-            background: white;
-        }
-
-        input[type="password"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 13px;
-            transition: border-color 0.3s;
-        }
-
-        .form-select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 13px;
-            transition: border-color 0.3s;
-            background: white;
-            cursor: pointer;
-        }
-
-        .form-select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-size: 13px;
-            color: #555;
-            height: 42px;
-            padding: 0 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            transition: border-color 0.3s;
-        }
-
-        .checkbox-label:hover {
-            border-color: #667eea;
-        }
-
-        .checkbox-label input {
-            margin-right: 8px;
-            width: 16px;
-            height: 16px;
-        }
-
-        .color-input-wrapper {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        input[type="color"] {
-            width: 42px;
-            height: 42px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            padding: 2px;
-        }
-
-        input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-
-        input[type="color"]::-webkit-color-swatch {
-            border: none;
-            border-radius: 4px;
-        }
-
-        .color-text {
-            flex: 1;
-            padding: 10px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 13px;
-            font-family: monospace;
-            text-transform: uppercase;
-        }
-
-        .splash-preview {
-            height: 42px;
-            border-radius: 8px;
-            background: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.3s;
-        }
-
-        .splash-icon {
-            width: 28px;
-            height: 28px;
-            background: #f0f0f0;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            color: #999;
-            overflow: hidden;
-        }
-
-        .splash-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        /* 目标市场切换 */
-        .market-toggle {
-            display: flex;
-            gap: 0;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .market-option {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 12px;
-            cursor: pointer;
-            font-size: 13px;
-            color: #555;
-            background: #f8f9fa;
-            transition: all 0.3s;
-            border-right: 1px solid #e0e0e0;
-        }
-
-        .market-option:last-child {
-            border-right: none;
-        }
-
-        .market-option:hover {
-            background: #f0f0f0;
-        }
-
-        .market-option input {
-            display: none;
-        }
-
-        .market-option.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 500;
-        }
-
-        .market-section {
-            display: block;
-        }
-
-        .market-section.hidden {
-            display: none;
-        }
-
-        .feature-toggle {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            color: #555;
-            margin-bottom: 10px;
-            transition: border-color 0.3s;
-        }
-
-        .feature-toggle:hover {
-            border-color: #667eea;
-        }
-
-        .feature-toggle input {
-            margin-right: 8px;
-            width: 16px;
-            height: 16px;
-        }
-
-        .feature-toggle.active {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-
-        .feature-fields {
-            display: none;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .feature-fields.active {
-            display: block;
-        }
-
-        .coming-soon {
-            padding: 20px;
-            text-align: center;
-            color: #888;
-            font-size: 13px;
-            background: #f8f9fa;
-            border-radius: 8px;
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #D4A373;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
     </style>
 </head>
 
-<body>
-    <div class="container">
-        <h1>网页转APK生成器</h1>
+<body class="bg-[#F9F7F5] min-h-screen">
+    <div class="flex min-h-screen">
+        <!-- 左侧导航 -->
+        <aside
+            class="fixed left-0 top-0 bottom-0 w-56 bg-[#F0EDE8]/50 p-4 flex flex-col border-r border-[#E8E4DE]/50 z-10">
+            <div class="mb-8">
+                <h1 class="text-xl font-bold text-[#2D2D2D]">Web2APK</h1>
+                <p class="text-sm text-[#2D2D2D]/50">Generator</p>
+            </div>
 
-        <div class="form-section" id="formSection">
-            <form id="apkForm">
-                <!-- 目标市场选择 -->
-                <div class="form-group">
-                    <label>目标市场</label>
-                    <div class="market-toggle">
-                        <label class="market-option active" id="marketOverseas">
-                            <input type="radio" name="targetMarket" value="overseas" checked>
-                            <span>🌏 海外 (Google Play)</span>
-                        </label>
-                        <label class="market-option" id="marketChina">
-                            <input type="radio" name="targetMarket" value="china">
-                            <span>🇨🇳 中国大陆</span>
-                        </label>
-                    </div>
+            <nav class="flex-1 space-y-2">
+                <div id="navBasic" onclick="switchTab('basic')"
+                    class="px-4 py-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all bg-white shadow-sm text-[#2D2D2D] font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    基础配置
                 </div>
+                <div id="navPlugins" onclick="switchTab('plugins')"
+                    class="px-4 py-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all text-[#2D2D2D]/70 hover:bg-[#E8E4DE]/50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" />
+                    </svg>
+                    插件市场
+                </div>
+            </nav>
 
-                <div class="form-group">
-                    <label for="appName">应用名称</label>
-                    <input type="text" id="appName" name="appName" placeholder="例如：我的应用" required>
-                </div>
-                <div class="form-group">
-                    <label for="packageName">包名</label>
-                    <input type="text" id="packageName" name="packageName" placeholder="例如：com.example.myapp" required>
-                </div>
-                <div class="form-group">
-                    <label for="url">网址 URL</label>
-                    <input type="url" id="url" name="url" placeholder="https://example.com" required>
-                </div>
-                <div class="form-group">
-                    <label>应用图标</label>
-                    <div class="icon-row">
-                        <div class="icon-upload" id="iconUpload">
-                            <div class="icon-preview" id="iconPreview">
-                                <span class="icon-preview-placeholder">+</span>
+
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 ml-56 mr-80 p-8 pb-24 overflow-y-auto min-h-screen">
+            <form id="apkForm" class="max-w-2xl mx-auto">
+                <!-- 基础配置页 -->
+                <div id="tabBasic" class="tab-content">
+                    <h2 class="text-2xl font-bold text-[#2D2D2D] mb-6">基础配置</h2>
+
+                    <!-- 应用信息 -->
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E8E4DE]/50 mb-6">
+                        <h3 class="text-lg font-semibold text-[#2D2D2D] mb-4 flex items-center gap-2">
+                            <span
+                                class="w-8 h-8 bg-[#D4A373]/10 rounded-lg flex items-center justify-center text-[#D4A373]">📱</span>
+                            应用信息
+                        </h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2"
+                                    for="appName">应用名称</label>
+                                <input type="text" id="appName" name="appName"
+                                    class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] placeholder-[#2D2D2D]/40 focus:outline-none focus:border-[#D4A373] focus:ring-2 focus:ring-[#D4A373]/20 transition-all"
+                                    placeholder="我的应用" required>
                             </div>
-                            <input type="file" id="iconFile" accept="image/png,image/jpeg" required>
-                        </div>
-                        <span class="icon-hint">点击左侧上传图标<br>建议 512x512 PNG</span>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group half">
-                        <label for="screenOrientation">屏幕方向</label>
-                        <select id="screenOrientation" name="screenOrientation" class="form-select">
-                            <option value="unspecified">自由旋转</option>
-                            <option value="portrait">竖屏锁定</option>
-                            <option value="landscape">横屏锁定</option>
-                        </select>
-                    </div>
-                    <div class="form-group half">
-                        <label>显示模式</label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="fullscreen" name="fullscreen">
-                            <span>全屏沉浸式</span>
-                        </label>
-                        <label class="checkbox-label" style="margin-top: 8px;">
-                            <input type="checkbox" id="pullToRefresh" name="pullToRefresh">
-                            <span>下拉刷新</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group half">
-                        <label for="splashColor">启动画面背景色</label>
-                        <div class="color-input-wrapper">
-                            <input type="color" id="splashColor" name="splashColor" value="#f8f9fa">
-                            <input type="text" id="splashColorText" value="#f8f9fa" maxlength="7" class="color-text">
-                        </div>
-                    </div>
-                    <div class="form-group half">
-                        <label>启动画面预览</label>
-                        <div class="splash-preview" id="splashPreview">
-                            <div class="splash-icon" id="splashIconPreview">+</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="statusBarColor">状态栏颜色</label>
-                    <div class="color-input-wrapper">
-                        <input type="color" id="statusBarColor" name="statusBarColor" value="#000000">
-                        <input type="text" id="statusBarColorText" value="#000000" maxlength="7" class="color-text">
-                    </div>
-                </div>
-
-                <div class="keystore-section">
-                    <label class="keystore-toggle" id="keystoreToggle">
-                        <input type="checkbox" id="useExistingKeystore">
-                        <span>使用已有证书（用于更新APP）</span>
-                    </label>
-                    <div class="keystore-fields" id="keystoreFields">
-                        <div class="form-group">
-                            <label for="keystoreFile">证书文件 (.keystore / .jks)</label>
-                            <input type="file" id="keystoreFile" accept=".keystore,.jks" class="file-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="keystorePassword">证书密码</label>
-                            <input type="password" id="keystorePassword" placeholder="输入证书密码">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group half">
-                                <label for="keyAlias">密钥别名</label>
-                                <input type="text" id="keyAlias" placeholder="如 key0" value="key0">
+                            <div>
+                                <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2"
+                                    for="packageName">包名</label>
+                                <input type="text" id="packageName" name="packageName"
+                                    class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] placeholder-[#2D2D2D]/40 focus:outline-none focus:border-[#D4A373] focus:ring-2 focus:ring-[#D4A373]/20 transition-all"
+                                    placeholder="com.example.app" required>
                             </div>
-                            <div class="form-group half">
-                                <label for="keyPassword">密钥密码</label>
-                                <input type="password" id="keyPassword" placeholder="通常与证书密码相同">
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2" for="url">网址 URL</label>
+                                <input type="url" id="url" name="url"
+                                    class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] placeholder-[#2D2D2D]/40 focus:outline-none focus:border-[#D4A373] focus:ring-2 focus:ring-[#D4A373]/20 transition-all"
+                                    placeholder="https://example.com" required>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="versionName">版本号</label>
-                            <input type="text" id="versionName" placeholder="如 1.1、2.0" value="1.0">
-                        </div>
                     </div>
-                </div>
 
-                <!-- 海外配置区 -->
-                <div class="market-section" id="overseasSection">
-                    <div class="keystore-section">
-                        <div style="font-weight: 500; margin-bottom: 12px; color: #333; font-size: 13px;">🌏 海外功能配置</div>
-
-                        <!-- Google 登录 -->
-                        <label class="feature-toggle" id="googleLoginToggle">
-                            <input type="checkbox" id="enableGoogleLogin">
-                            <span>Google 登录</span>
-                        </label>
-                        <div class="feature-fields" id="googleLoginFields">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label for="googleClientId">Web Client ID</label>
-                                <input type="text" id="googleClientId" placeholder="格式: xxx.apps.googleusercontent.com">
-                                <div style="margin-top: 6px;">
-                                    <span style="color: #0078d4; font-size: 11px; cursor: pointer;"
-                                        onclick="document.getElementById('googleGuide').style.display = document.getElementById('googleGuide').style.display === 'none' ? 'block' : 'none'">
-                                        需创建两个客户端，查看配置指南 ▼
-                                    </span>
-                                    <span style="color: #888; font-size: 11px; margin-left: 8px;">
-                                        <a href="https://console.cloud.google.com/" target="_blank">申请地址</a>
-                                    </span>
+                    <!-- 应用图标 -->
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E8E4DE]/50 mb-6">
+                        <h3 class="text-lg font-semibold text-[#2D2D2D] mb-4 flex items-center gap-2">
+                            <span
+                                class="w-8 h-8 bg-[#D4A373]/10 rounded-lg flex items-center justify-center text-[#D4A373]">🎨</span>
+                            应用图标
+                        </h3>
+                        <div class="flex items-center gap-6">
+                            <div class="relative">
+                                <div id="iconPreview"
+                                    class="w-24 h-24 bg-[#F0EDE8] rounded-2xl flex items-center justify-center border-2 border-dashed border-[#E8E4DE] hover:border-[#D4A373] transition-colors cursor-pointer overflow-hidden">
+                                    <span class="text-[#2D2D2D]/40 text-3xl">+</span>
                                 </div>
-                                <div id="googleGuide"
-                                    style="display: none; background: #fff; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 12px; line-height: 1.6; border: 1px solid #e0e0e0;">
-                                    <div style="font-weight: bold; margin-bottom: 8px; color: #333;">📖 Google 登录配置指南</div>
-                                    <div style="color: #555;">
-                                        <div style="margin-bottom: 10px;">
-                                            <strong>步骤 1：首次生成 APK</strong><br>
-                                            先不填 Client ID，生成 APK 后在 ZIP 包中获取 SHA-1 指纹
-                                        </div>
-                                        <div style="margin-bottom: 10px;">
-                                            <strong>步骤 2：创建 Android 客户端</strong><br>
-                                            在 Google Cloud Console 创建 OAuth 客户端（Android 类型）<br>
-                                            • 填入包名（与上方填写的一致）<br>
-                                            • 填入 SHA-1 指纹（来自 ZIP 包）
-                                        </div>
-                                        <div style="margin-bottom: 10px;">
-                                            <strong>步骤 3：创建 Web 客户端</strong><br>
-                                            再创建一个 OAuth 客户端（<strong>Web 应用</strong>类型）<br>
-                                            <span style="color: #e74c3c;">⚠️ 复制这个 Client ID 填到上方输入框！</span>
-                                        </div>
-                                        <div>
-                                            <strong>步骤 4：重新生成 APK</strong><br>
-                                            使用原证书 + Web Client ID 重新打包即可
-                                        </div>
+                                <input type="file" id="iconFile" accept="image/png,image/jpeg"
+                                    class="absolute inset-0 opacity-0 cursor-pointer" required>
+                            </div>
+                            <div class="text-sm text-[#2D2D2D]/60">
+                                <p class="font-medium text-[#2D2D2D] mb-1">上传应用图标</p>
+                                <p>建议尺寸 512×512 像素</p>
+                                <p>支持 PNG、JPG 格式</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 显示设置 -->
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E8E4DE]/50 mb-6">
+                        <h3 class="text-lg font-semibold text-[#2D2D2D] mb-4 flex items-center gap-2">
+                            <span
+                                class="w-8 h-8 bg-[#D4A373]/10 rounded-lg flex items-center justify-center text-[#D4A373]">🖥️</span>
+                            显示设置
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium text-[#2D2D2D]">屏幕方向</p>
+                                    <p class="text-sm text-[#2D2D2D]/50">控制应用的屏幕旋转行为</p>
+                                </div>
+                                <select id="screenOrientation" name="screenOrientation"
+                                    class="w-40 px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] focus:outline-none focus:border-[#D4A373] transition-all">
+                                    <option value="unspecified">自由旋转</option>
+                                    <option value="portrait">竖屏锁定</option>
+                                    <option value="landscape">横屏锁定</option>
+                                </select>
+                            </div>
+                            <div class="border-t border-[#E8E4DE]/50"></div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium text-[#2D2D2D]">全屏沉浸</p>
+                                    <p class="text-sm text-[#2D2D2D]/50">隐藏状态栏和导航栏</p>
+                                </div>
+                                <div id="fullscreenToggle" onclick="toggleSwitch('fullscreen')"
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer bg-[#E8E4DE]">
+                                    <span
+                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm translate-x-1"></span>
+                                </div>
+                                <input type="hidden" id="fullscreen" name="fullscreen" value="0">
+                            </div>
+                            <div class="border-t border-[#E8E4DE]/50"></div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium text-[#2D2D2D]">下拉刷新</p>
+                                    <p class="text-sm text-[#2D2D2D]/50">启用下拉刷新手势</p>
+                                </div>
+                                <div id="pullToRefreshToggle" onclick="toggleSwitch('pullToRefresh')"
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer bg-[#E8E4DE]">
+                                    <span
+                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm translate-x-1"></span>
+                                </div>
+                                <input type="hidden" id="pullToRefresh" name="pullToRefresh" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 颜色配置 -->
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E8E4DE]/50 mb-6">
+                        <h3 class="text-lg font-semibold text-[#2D2D2D] mb-4 flex items-center gap-2">
+                            <span
+                                class="w-8 h-8 bg-[#D4A373]/10 rounded-lg flex items-center justify-center text-[#D4A373]">�</span>
+                            颜色配置
+                        </h3>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">启动画面背景</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="color" id="splashColor" name="splashColor" value="#f8f9fa"
+                                        class="w-10 h-10 rounded-lg border-2 border-[#E8E4DE] cursor-pointer overflow-hidden color-picker">
+                                    <input type="text" id="splashColorText" value="#f8f9fa" maxlength="7"
+                                        class="flex-1 px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] font-mono text-sm uppercase focus:outline-none focus:border-[#D4A373] transition-all">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">状态栏颜色</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="color" id="statusBarColor" name="statusBarColor" value="#000000"
+                                        class="w-10 h-10 rounded-lg border-2 border-[#E8E4DE] cursor-pointer overflow-hidden color-picker">
+                                    <input type="text" id="statusBarColorText" value="#000000" maxlength="7"
+                                        class="flex-1 px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] font-mono text-sm uppercase focus:outline-none focus:border-[#D4A373] transition-all">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 签名配置 -->
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E8E4DE]/50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold text-[#2D2D2D] flex items-center gap-2 mb-0">
+                                    <span
+                                        class="w-8 h-8 bg-[#D4A373]/10 rounded-lg flex items-center justify-center text-[#D4A373]">🔐</span>
+                                    使用已有证书
+                                </h3>
+                                <p class="text-sm text-[#2D2D2D]/50 mt-1 ml-10">用于更新已发布的 APP</p>
+                            </div>
+                            <div id="useExistingKeystoreToggle"
+                                onclick="toggleSwitch('useExistingKeystore'); toggleKeystoreFields()"
+                                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer bg-[#E8E4DE]">
+                                <span
+                                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm translate-x-1"></span>
+                            </div>
+                            <input type="hidden" id="useExistingKeystore" value="0">
+                        </div>
+
+                        <div id="keystoreFields" class="hidden mt-6 pt-6 border-t border-[#E8E4DE]/50 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">证书文件 (.keystore /
+                                    .jks)</label>
+                                <input type="file" id="keystoreFile" accept=".keystore,.jks"
+                                    class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] text-sm">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">证书密码</label>
+                                    <input type="password" id="keystorePassword"
+                                        class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] focus:outline-none focus:border-[#D4A373] transition-all"
+                                        placeholder="输入证书密码">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">版本号</label>
+                                    <input type="text" id="versionName"
+                                        class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] focus:outline-none focus:border-[#D4A373] transition-all"
+                                        placeholder="1.0" value="1.0">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">密钥别名</label>
+                                    <input type="text" id="keyAlias"
+                                        class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] focus:outline-none focus:border-[#D4A373] transition-all"
+                                        placeholder="key0" value="key0">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">密钥密码</label>
+                                    <input type="password" id="keyPassword"
+                                        class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] focus:outline-none focus:border-[#D4A373] transition-all"
+                                        placeholder="通常与证书密码相同">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 插件市场页 -->
+                <div id="tabPlugins" class="tab-content hidden">
+                    <h2 class="text-2xl font-bold text-[#2D2D2D] mb-6">插件市场</h2>
+
+                    <!-- 市场切换 -->
+                    <div class="flex gap-2 mb-6 p-1 bg-[#F0EDE8] rounded-xl">
+                        <button type="button" id="marketOverseasBtn" onclick="switchMarket('overseas')"
+                            class="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all bg-white shadow-sm text-[#2D2D2D]">
+                            🌏 海外市场
+                        </button>
+                        <button type="button" id="marketChinaBtn" onclick="switchMarket('china')"
+                            class="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all text-[#2D2D2D]/60 hover:bg-white/50">
+                            🇨🇳 中国大陆
+                        </button>
+                    </div>
+                    <input type="hidden" id="targetMarket" name="targetMarket" value="overseas">
+
+                    <!-- 海外插件 -->
+                    <div id="overseasPlugins" class="space-y-4">
+                        <!-- Google 登录 -->
+                        <div id="googleLoginCard" onclick="togglePlugin('googleLogin')"
+                            class="p-4 rounded-xl border-2 border-[#E8E4DE]/50 bg-white hover:border-[#D4A373]/50 transition-all cursor-pointer">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-[#E8E4DE]/50">
+                                        <svg class="w-6 h-6" viewBox="0 0 24 24">
+                                            <path fill="#4285F4"
+                                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                            <path fill="#34A853"
+                                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                            <path fill="#FBBC05"
+                                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                            <path fill="#EA4335"
+                                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-[#2D2D2D]">Google 登录</p>
+                                        <p class="text-sm text-[#2D2D2D]/50">一键登录 Google 账号</p>
                                     </div>
                                 </div>
+                                <div id="googleLoginToggleSwitch"
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer bg-[#E8E4DE]">
+                                    <span
+                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm translate-x-1"></span>
+                                </div>
+                            </div>
+                            <div id="googleLoginFields" class="hidden pt-3 border-t border-[#E8E4DE]/50">
+                                <label class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">Web Client ID</label>
+                                <input type="text" id="googleClientId"
+                                    class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] focus:outline-none focus:border-[#D4A373] transition-all"
+                                    placeholder="xxx.apps.googleusercontent.com" onclick="event.stopPropagation()">
+                                <p class="text-xs text-[#2D2D2D]/50 mt-2">
+                                    <a href="https://console.cloud.google.com/" target="_blank"
+                                        class="text-[#D4A373] hover:underline">申请地址</a> · 需要同时创建 Android 和 Web 两个客户端
+                                </p>
                             </div>
                         </div>
+                        <input type="hidden" id="enableGoogleLogin" value="0">
 
                         <!-- FCM 推送 -->
-                        <label class="feature-toggle" id="fcmToggle">
-                            <input type="checkbox" id="enableFcm">
-                            <span>FCM 推送</span>
-                        </label>
-                        <div class="feature-fields" id="fcmFields">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label for="fcmConfig">google-services.json</label>
-                                <input type="file" id="fcmConfig" accept=".json" class="file-input">
-                                <div style="margin-top: 6px;">
-                                    <span style="color: #0078d4; font-size: 11px; cursor: pointer;"
-                                        onclick="document.getElementById('fcmGuide').style.display = document.getElementById('fcmGuide').style.display === 'none' ? 'block' : 'none'">
-                                        查看获取方式 ▼
-                                    </span>
-                                    <span style="color: #888; font-size: 11px; margin-left: 8px;">
-                                        <a href="https://console.firebase.google.com/" target="_blank">Firebase 控制台</a>
-                                    </span>
-                                </div>
-                                <div id="fcmGuide"
-                                    style="display: none; background: #fff; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 12px; line-height: 1.6; border: 1px solid #e0e0e0;">
-                                    <div style="font-weight: bold; margin-bottom: 8px; color: #333;">📖 FCM 配置指南</div>
-                                    <div style="color: #555;">
-                                        <div style="margin-bottom: 10px;">
-                                            <strong>步骤 1：创建 Firebase 项目</strong><br>
-                                            访问 Firebase 控制台，创建新项目或使用已有项目
-                                        </div>
-                                        <div style="margin-bottom: 10px;">
-                                            <strong>步骤 2：添加 Android 应用</strong><br>
-                                            点击"添加应用" → 选择 Android<br>
-                                            • 填入包名（与上方填写的一致）<br>
-                                            • SHA-1 可选（推送不需要）
-                                        </div>
-                                        <div style="margin-bottom: 10px;">
-                                            <strong>步骤 3：下载配置文件</strong><br>
-                                            下载 <code>google-services.json</code> 文件
-                                        </div>
-                                        <div>
-                                            <strong>步骤 4：上传到这里</strong><br>
-                                            将下载的文件上传到上方输入框
-                                        </div>
+                        <div id="fcmCard" onclick="togglePlugin('fcm')"
+                            class="p-4 rounded-xl border-2 border-[#E8E4DE]/50 bg-white hover:border-[#D4A373]/50 transition-all cursor-pointer">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center shadow-sm border border-[#E8E4DE]/50">
+                                        <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                        </svg>
                                     </div>
+                                    <div>
+                                        <p class="font-medium text-[#2D2D2D]">FCM 推送</p>
+                                        <p class="text-sm text-[#2D2D2D]/50">Firebase 云消息推送</p>
+                                    </div>
+                                </div>
+                                <div id="fcmToggleSwitch"
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer bg-[#E8E4DE]">
+                                    <span
+                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm translate-x-1"></span>
+                                </div>
+                            </div>
+                            <div id="fcmFields" class="hidden pt-3 border-t border-[#E8E4DE]/50">
+                                <label
+                                    class="block text-sm font-medium text-[#2D2D2D]/70 mb-2">google-services.json</label>
+                                <input type="file" id="fcmConfig" accept=".json"
+                                    class="w-full px-4 py-3 bg-white border border-[#E8E4DE] rounded-xl text-[#2D2D2D] text-sm"
+                                    onclick="event.stopPropagation()">
+                                <p class="text-xs text-[#2D2D2D]/50 mt-2">
+                                    <a href="https://console.firebase.google.com/" target="_blank"
+                                        class="text-[#D4A373] hover:underline">Firebase 控制台</a> · 添加 Android 应用后下载
+                                </p>
+                            </div>
+                        </div>
+                        <input type="hidden" id="enableFcm" value="0">
+                    </div>
+
+                    <!-- 国内插件 -->
+                    <div id="chinaPlugins" class="hidden space-y-4">
+                        <div class="p-4 rounded-xl border-2 border-[#E8E4DE]/50 bg-white opacity-60 cursor-not-allowed">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178A1.17 1.17 0 014.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178 1.17 1.17 0 01-1.162-1.179c0-.65.52-1.179 1.162-1.179z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-[#2D2D2D]">微信登录</p>
+                                    <p class="text-sm text-[#2D2D2D]/50">即将支持 · 需企业资质</p>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- 国内配置区 -->
-                <div class="market-section hidden" id="chinaSection">
-                    <div class="keystore-section">
-                        <div style="font-weight: 500; margin-bottom: 12px; color: #333; font-size: 13px;">🇨🇳 国内功能配置</div>
-
-                        <!-- 极光推送（待实现） -->
-                        <label class="feature-toggle" id="jpushToggle">
-                            <input type="checkbox" id="enableJpush" disabled>
-                            <span>极光推送（即将支持）</span>
-                        </label>
-
-                        <!-- 个推（待实现） -->
-                        <label class="feature-toggle" id="getuitoggle">
-                            <input type="checkbox" id="enableGetui" disabled>
-                            <span>个推（即将支持）</span>
-                        </label>
-
-                        <div class="coming-soon">
-                            🚧 国内推送功能正在开发中，敬请期待
+                        <div class="p-4 rounded-xl border-2 border-[#E8E4DE]/50 bg-white opacity-60 cursor-not-allowed">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-[#2D2D2D]">极光推送</p>
+                                    <p class="text-sm text-[#2D2D2D]/50">即将支持 · 聚合厂商通道</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-[#F0EDE8]/50 rounded-xl text-center text-[#2D2D2D]/50">
+                            🚧 国内功能正在开发中，敬请期待
                         </div>
                     </div>
                 </div>
-
-                <button type="submit" class="btn" id="submitBtn">生成 APK</button>
             </form>
-        </div>
+        </main>
 
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar-wrapper">
-                <div class="progress-bar" id="progressBar"></div>
+        <!-- 右侧预览 -->
+        <aside
+            class="fixed right-0 top-0 bottom-0 w-80 p-8 flex flex-col items-center justify-center border-l border-[#E8E4DE]/50 bg-[#F0EDE8]/30 z-10">
+            <div class="text-center mb-6">
+                <h3 class="text-sm font-semibold text-[#2D2D2D]/70 mb-1">启动画面预览</h3>
+                <p class="text-xs text-[#2D2D2D]/40">实时预览开屏效果</p>
             </div>
-            <div class="progress-status" id="progressStatus"></div>
-        </div>
+            <div class="relative bg-[#2D2D2D] rounded-[2.5rem] p-2 shadow-2xl" style="width: 220px;">
+                <div class="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-5 bg-[#2D2D2D] rounded-full z-10"></div>
+                <div class="rounded-[2rem] overflow-hidden bg-[#F9F7F5]" style="aspect-ratio: 9/19.5;">
+                    <div id="previewScreen" class="h-full flex flex-col items-center justify-center"
+                        style="background: #f8f9fa;">
+                        <div id="previewIcon"
+                            class="w-16 h-16 bg-[#E8E4DE] rounded-2xl mb-3 flex items-center justify-center text-[#2D2D2D]/30 text-2xl overflow-hidden">
+                            ?
+                        </div>
+                        <p id="previewAppName" class="text-sm font-medium text-[#2D2D2D]/70">应用名称</p>
+                        <p class="text-xs text-[#2D2D2D]/40 mt-1">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
 
-        <div class="result-section" id="resultSection">
-            <p class="success-text">APK 生成成功!</p>
-            <p class="result-hint">下载包含：APK安装包 + 签名证书 + 密码信息</p>
-            <div class="btn-group">
-                <a href="#" class="btn btn-success" id="downloadBtn">下载 ZIP</a>
-                <button type="button" class="btn btn-secondary" id="resetBtn">返回</button>
+    <!-- 底部固定生成按钮 -->
+    <div class="fixed bottom-0 left-56 right-80 p-4 bg-[#F9F7F5]/95 backdrop-blur-sm border-t border-[#E8E4DE]/50">
+        <div class="max-w-2xl mx-auto flex gap-3">
+            <button type="button" id="submitBtn" data-format="apk" disabled
+                class="flex-1 py-3 px-6 bg-[#E8E4DE] cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                生成 APK
+            </button>
+            <div class="relative group">
+                <button type="button" id="submitBtnAAB" data-format="aab" disabled
+                    class="py-3 px-6 bg-[#E8E4DE] cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    生成 AAB
+                    <span
+                        class="w-4 h-4 bg-amber-100 text-amber-600 rounded-full text-xs flex items-center justify-center font-bold">!</span>
+                </button>
+                <!-- Tooltip -->
+                <div
+                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#2D2D2D] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                    上架 Google Play 必须使用 AAB 格式
+                    <div
+                        class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#2D2D2D]">
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="error-message" id="errorMessage"></div>
+    <!-- 进度弹窗 -->
+    <div id="progressModal" class="fixed inset-0 bg-[#2D2D2D]/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 w-96 shadow-2xl">
+            <h3 id="progressTitle" class="text-lg font-semibold text-[#2D2D2D] mb-4">正在生成 APK</h3>
+            <div class="h-2 bg-[#F0EDE8] rounded-full overflow-hidden mb-4">
+                <div id="progressBar" class="h-full bg-[#D4A373] transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div id="progressStatus" class="max-h-40 overflow-y-auto space-y-2 text-sm"></div>
+        </div>
+    </div>
+
+    <!-- 成功弹窗 -->
+    <div id="successModal" class="fixed inset-0 bg-[#2D2D2D]/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 w-96 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 id="successTitle" class="text-lg font-semibold text-[#2D2D2D] mb-2">APK 生成成功!</h3>
+            <p id="successDesc" class="text-sm text-[#2D2D2D]/50 mb-6">下载包含：APK安装包 + 签名证书 + 密码信息</p>
+            <div class="flex gap-3">
+                <a href="#" id="downloadBtn"
+                    class="flex-1 py-3 bg-[#D4A373] hover:bg-[#B8956A] text-white font-medium rounded-xl transition-all text-center">
+                    下载 ZIP
+                </a>
+                <button type="button" id="resetBtn"
+                    class="flex-1 py-3 bg-[#F0EDE8] hover:bg-[#E8E4DE] text-[#2D2D2D] font-medium rounded-xl transition-all">
+                    返回
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 错误弹窗 -->
+    <div id="errorModal" class="fixed inset-0 bg-[#2D2D2D]/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 w-96 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-[#2D2D2D] mb-2">生成失败</h3>
+            <p id="errorMessage" class="text-sm text-[#2D2D2D]/50 mb-6">未知错误</p>
+            <button type="button" onclick="closeErrorModal()"
+                class="w-full py-3 bg-[#F0EDE8] hover:bg-[#E8E4DE] text-[#2D2D2D] font-medium rounded-xl transition-all">
+                确定
+            </button>
+        </div>
     </div>
 
     <script>
+        // DOM Elements
         const form = document.getElementById('apkForm');
-        const formSection = document.getElementById('formSection');
-        const iconFile = document.getElementById('iconFile');
-        const iconPreview = document.getElementById('iconPreview');
-        const progressContainer = document.getElementById('progressContainer');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitBtnAAB = document.getElementById('submitBtnAAB');
+        const progressModal = document.getElementById('progressModal');
         const progressBar = document.getElementById('progressBar');
         const progressStatus = document.getElementById('progressStatus');
-        const resultSection = document.getElementById('resultSection');
+        const successModal = document.getElementById('successModal');
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
-        const errorMessage = document.getElementById('errorMessage');
-        const submitBtn = document.getElementById('submitBtn');
+        const errorModal = document.getElementById('errorModal');
+        const errorMessageEl = document.getElementById('errorMessage');
+        const iconFile = document.getElementById('iconFile');
 
-        const useExistingKeystore = document.getElementById('useExistingKeystore');
-        const keystoreFields = document.getElementById('keystoreFields');
-        const keystoreFile = document.getElementById('keystoreFile');
-        const keystorePassword = document.getElementById('keystorePassword');
-        const keyAlias = document.getElementById('keyAlias');
-        const keyPassword = document.getElementById('keyPassword');
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
 
-        // 证书选项切换
-        useExistingKeystore.addEventListener('change', function () {
-            if (this.checked) {
-                keystoreFields.classList.add('active');
+            // Update nav styles
+            const navBasic = document.getElementById('navBasic');
+            const navPlugins = document.getElementById('navPlugins');
+
+            if (tab === 'basic') {
+                navBasic.className = 'px-4 py-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all bg-white shadow-sm text-[#2D2D2D] font-medium';
+                navPlugins.className = 'px-4 py-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all text-[#2D2D2D]/70 hover:bg-[#E8E4DE]/50';
             } else {
-                keystoreFields.classList.remove('active');
+                navPlugins.className = 'px-4 py-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all bg-white shadow-sm text-[#2D2D2D] font-medium';
+                navBasic.className = 'px-4 py-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all text-[#2D2D2D]/70 hover:bg-[#E8E4DE]/50';
             }
-        });
+        }
 
-        // 目标市场切换
-        const marketOverseas = document.getElementById('marketOverseas');
-        const marketChina = document.getElementById('marketChina');
-        const overseasSection = document.getElementById('overseasSection');
-        const chinaSection = document.getElementById('chinaSection');
+        // Market Switching
+        function switchMarket(market) {
+            document.getElementById('targetMarket').value = market;
+            const overseasBtn = document.getElementById('marketOverseasBtn');
+            const chinaBtn = document.getElementById('marketChinaBtn');
+            const overseasPlugins = document.getElementById('overseasPlugins');
+            const chinaPlugins = document.getElementById('chinaPlugins');
 
-        document.querySelectorAll('input[name="targetMarket"]').forEach(radio => {
-            radio.addEventListener('change', function () {
-                // 更新按钮样式
-                marketOverseas.classList.toggle('active', this.value === 'overseas');
-                marketChina.classList.toggle('active', this.value === 'china');
-                // 切换配置区显示
-                overseasSection.classList.toggle('hidden', this.value !== 'overseas');
-                chinaSection.classList.toggle('hidden', this.value !== 'china');
-            });
-        });
+            if (market === 'overseas') {
+                overseasBtn.className = 'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all bg-white shadow-sm text-[#2D2D2D]';
+                chinaBtn.className = 'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all text-[#2D2D2D]/60 hover:bg-white/50';
+                overseasPlugins.classList.remove('hidden');
+                chinaPlugins.classList.add('hidden');
+            } else {
+                chinaBtn.className = 'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all bg-white shadow-sm text-[#2D2D2D]';
+                overseasBtn.className = 'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all text-[#2D2D2D]/60 hover:bg-white/50';
+                chinaPlugins.classList.remove('hidden');
+                overseasPlugins.classList.add('hidden');
+            }
+        }
 
-        // Google 登录 toggle
-        const enableGoogleLogin = document.getElementById('enableGoogleLogin');
-        const googleLoginToggle = document.getElementById('googleLoginToggle');
-        const googleLoginFields = document.getElementById('googleLoginFields');
-        enableGoogleLogin.addEventListener('change', function () {
-            googleLoginToggle.classList.toggle('active', this.checked);
-            googleLoginFields.classList.toggle('active', this.checked);
-        });
+        // Toggle Switch
+        function toggleSwitch(inputId) {
+            const input = document.getElementById(inputId);
+            const toggle = document.getElementById(inputId + 'Toggle');
+            const isActive = input.value === '1';
 
-        // FCM 推送 toggle
-        const enableFcm = document.getElementById('enableFcm');
-        const fcmToggle = document.getElementById('fcmToggle');
-        const fcmFields = document.getElementById('fcmFields');
-        enableFcm.addEventListener('change', function () {
-            fcmToggle.classList.toggle('active', this.checked);
-            fcmFields.classList.toggle('active', this.checked);
-        });
+            input.value = isActive ? '0' : '1';
 
-        // 颜色选择器
+            const dot = toggle.querySelector('span');
+            if (input.value === '1') {
+                toggle.className = toggle.className.replace('bg-[#E8E4DE]', 'bg-[#D4A373]');
+                dot.className = dot.className.replace('translate-x-1', 'translate-x-6');
+            } else {
+                toggle.className = toggle.className.replace('bg-[#D4A373]', 'bg-[#E8E4DE]');
+                dot.className = dot.className.replace('translate-x-6', 'translate-x-1');
+            }
+        }
+
+        // Keystore Fields Toggle
+        function toggleKeystoreFields() {
+            const fields = document.getElementById('keystoreFields');
+            const isActive = document.getElementById('useExistingKeystore').value === '1';
+            fields.classList.toggle('hidden', !isActive);
+        }
+
+        // Plugin Toggle
+        function togglePlugin(plugin) {
+            const card = document.getElementById(plugin + (plugin === 'googleLogin' ? 'Card' : 'Card'));
+            const toggle = document.getElementById(plugin + (plugin === 'googleLogin' ? 'ToggleSwitch' : 'ToggleSwitch'));
+            const fields = document.getElementById(plugin + (plugin === 'googleLogin' ? 'Fields' : 'Fields'));
+            const inputId = 'enable' + plugin.charAt(0).toUpperCase() + plugin.slice(1);
+            const input = document.getElementById(inputId);
+
+            const isActive = input.value === '1';
+            input.value = isActive ? '0' : '1';
+
+            const dot = toggle.querySelector('span');
+            if (input.value === '1') {
+                toggle.className = toggle.className.replace('bg-[#E8E4DE]', 'bg-[#D4A373]');
+                dot.className = dot.className.replace('translate-x-1', 'translate-x-6');
+                card.classList.add('border-[#D4A373]', 'bg-[#D4A373]/5');
+                card.classList.remove('border-[#E8E4DE]/50');
+                fields.classList.remove('hidden');
+            } else {
+                toggle.className = toggle.className.replace('bg-[#D4A373]', 'bg-[#E8E4DE]');
+                dot.className = dot.className.replace('translate-x-6', 'translate-x-1');
+                card.classList.remove('border-[#D4A373]', 'bg-[#D4A373]/5');
+                card.classList.add('border-[#E8E4DE]/50');
+                fields.classList.add('hidden');
+            }
+        }
+
+        // Color Pickers
         const splashColor = document.getElementById('splashColor');
         const splashColorText = document.getElementById('splashColorText');
-        const splashPreview = document.getElementById('splashPreview');
-        const splashIconPreview = document.getElementById('splashIconPreview');
+        const previewScreen = document.getElementById('previewScreen');
 
         splashColor.addEventListener('input', function () {
             splashColorText.value = this.value;
-            splashPreview.style.background = this.value;
+            previewScreen.style.background = this.value;
         });
 
         splashColorText.addEventListener('input', function () {
             if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
                 splashColor.value = this.value;
-                splashPreview.style.background = this.value;
+                previewScreen.style.background = this.value;
             }
         });
 
-        // 状态栏颜色选择器
         const statusBarColor = document.getElementById('statusBarColor');
         const statusBarColorText = document.getElementById('statusBarColorText');
 
@@ -926,44 +666,88 @@
             }
         });
 
-        // 图标预览
+        // Icon Preview
         iconFile.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
-                    iconPreview.innerHTML = `<img src="${e.target.result}" alt="icon">`;
-                    // 同步更新启动画面预览
-                    splashIconPreview.innerHTML = `<img src="${e.target.result}" alt="icon">`;
+                    document.getElementById('iconPreview').innerHTML = `<img src="${e.target.result}" alt="icon" class="w-full h-full object-cover">`;
+                    document.getElementById('previewIcon').innerHTML = `<img src="${e.target.result}" alt="icon" class="w-full h-full object-cover">`;
                 };
                 reader.readAsDataURL(file);
             }
+            validateForm();
         });
 
-        // 返回按钮
-        resetBtn.addEventListener('click', function () {
-            formSection.classList.remove('hidden');
-            resultSection.classList.remove('active');
-            progressContainer.classList.remove('active');
-            errorMessage.classList.remove('active');
-            progressStatus.innerHTML = '';
-            progressBar.style.width = '0%';
-            submitBtn.disabled = false;
-            submitBtn.textContent = '生成 APK';
+        // App Name Preview
+        document.getElementById('appName').addEventListener('input', function () {
+            document.getElementById('previewAppName').textContent = this.value || '应用名称';
+            validateForm();
         });
 
-        // 表单提交
-        form.addEventListener('submit', async function (e) {
-            e.preventDefault();
+        // Form Validation
+        function validateForm() {
+            const appName = document.getElementById('appName').value.trim();
+            const packageName = document.getElementById('packageName').value.trim();
+            const url = document.getElementById('url').value.trim();
+            const icon = iconFile.files[0];
 
-            // 重置状态
-            progressContainer.classList.remove('active');
-            resultSection.classList.remove('active');
-            errorMessage.classList.remove('active');
-            progressStatus.innerHTML = '';
+            const isValid = appName && packageName && url && icon;
+
+            // APK 按钮
+            submitBtn.disabled = !isValid;
+            if (isValid) {
+                submitBtn.className = 'flex-1 py-3 px-6 bg-[#D4A373] hover:bg-[#B8956A] text-white font-medium rounded-xl transition-all shadow-lg shadow-[#D4A373]/30 cursor-pointer flex items-center justify-center gap-2';
+            } else {
+                submitBtn.className = 'flex-1 py-3 px-6 bg-[#E8E4DE] cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2';
+            }
+
+            // AAB 按钮
+            submitBtnAAB.disabled = !isValid;
+            if (isValid) {
+                submitBtnAAB.className = 'py-3 px-6 bg-[#D4A373] hover:bg-[#B8956A] text-white font-medium rounded-xl transition-all shadow-lg shadow-[#D4A373]/30 cursor-pointer flex items-center justify-center gap-2';
+            } else {
+                submitBtnAAB.className = 'py-3 px-6 bg-[#E8E4DE] cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2';
+            }
+        }
+
+        document.getElementById('appName').addEventListener('input', validateForm);
+        document.getElementById('packageName').addEventListener('input', validateForm);
+        document.getElementById('url').addEventListener('input', validateForm);
+
+        // Form Submit - 共用构建函数
+        async function handleBuild(format) {
+            // Validate keystore if enabled
+            const useKeystore = document.getElementById('useExistingKeystore').value === '1';
+            if (useKeystore) {
+                const keystoreFile = document.getElementById('keystoreFile');
+                const keystorePassword = document.getElementById('keystorePassword');
+                if (!keystoreFile.files[0]) {
+                    showError('请选择证书文件');
+                    return;
+                }
+                if (!keystorePassword.value) {
+                    showError('请输入证书密码');
+                    return;
+                }
+            }
+
+            // Validate FCM if enabled
+            if (document.getElementById('enableFcm').value === '1') {
+                const fcmConfig = document.getElementById('fcmConfig');
+                if (!fcmConfig.files[0]) {
+                    showError('请上传 google-services.json 文件');
+                    return;
+                }
+            }
+
+            // Show progress
+            const formatLabel = format.toUpperCase();
+            document.getElementById('progressTitle').textContent = `正在生成 ${formatLabel}`;
+            progressModal.classList.remove('hidden');
             progressBar.style.width = '0%';
-            submitBtn.disabled = true;
-            submitBtn.textContent = '生成中...';
+            progressStatus.innerHTML = '';
 
             const formData = new FormData();
             formData.append('appName', document.getElementById('appName').value);
@@ -971,67 +755,39 @@
             formData.append('url', document.getElementById('url').value);
             formData.append('icon', iconFile.files[0]);
             formData.append('screenOrientation', document.getElementById('screenOrientation').value);
-            formData.append('fullscreen', document.getElementById('fullscreen').checked ? '1' : '0');
-            formData.append('pullToRefresh', document.getElementById('pullToRefresh').checked ? '1' : '0');
+            formData.append('fullscreen', document.getElementById('fullscreen').value);
+            formData.append('pullToRefresh', document.getElementById('pullToRefresh').value);
             formData.append('splashColor', document.getElementById('splashColor').value);
             formData.append('statusBarColor', document.getElementById('statusBarColor').value);
+            formData.append('outputFormat', format); // 新增：输出格式
 
-            // 添加证书信息（如果选择使用已有证书）
-            if (useExistingKeystore.checked) {
-                if (!keystoreFile.files[0]) {
-                    showError('请选择证书文件');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '生成 APK';
-                    return;
-                }
-                if (!keystorePassword.value) {
-                    showError('请输入证书密码');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '生成 APK';
-                    return;
-                }
-                formData.append('keystore', keystoreFile.files[0]);
-                formData.append('keystorePassword', keystorePassword.value);
-                formData.append('keyAlias', keyAlias.value || 'key0');
-                formData.append('keyPassword', keyPassword.value || keystorePassword.value);
+            // Keystore
+            if (useKeystore) {
+                formData.append('keystore', document.getElementById('keystoreFile').files[0]);
+                formData.append('keystorePassword', document.getElementById('keystorePassword').value);
+                formData.append('keyAlias', document.getElementById('keyAlias').value || 'key0');
+                formData.append('keyPassword', document.getElementById('keyPassword').value || document.getElementById('keystorePassword').value);
                 formData.append('versionName', document.getElementById('versionName').value || '1.0');
             }
 
-            // 添加目标市场
-            const targetMarket = document.querySelector('input[name="targetMarket"]:checked').value;
+            // Market & Plugins
+            const targetMarket = document.getElementById('targetMarket').value;
             formData.append('targetMarket', targetMarket);
 
-            // 海外功能配置
             if (targetMarket === 'overseas') {
-                // Google 登录
-                if (document.getElementById('enableGoogleLogin').checked) {
+                if (document.getElementById('enableGoogleLogin').value === '1') {
                     const googleClientId = document.getElementById('googleClientId').value;
                     if (googleClientId) {
                         formData.append('googleClientId', googleClientId);
                     }
                 }
-                // FCM 推送
-                if (document.getElementById('enableFcm').checked) {
-                    const fcmConfig = document.getElementById('fcmConfig').files[0];
-                    if (fcmConfig) {
-                        formData.append('fcmConfig', fcmConfig);
-                    } else {
-                        showError('请上传 google-services.json 文件');
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = '生成 APK';
-                        return;
-                    }
+                if (document.getElementById('enableFcm').value === '1') {
+                    formData.append('fcmConfig', document.getElementById('fcmConfig').files[0]);
                 }
             }
 
-            progressContainer.classList.add('active');
-
             try {
-                const response = await fetch('/build', {
-                    method: 'POST',
-                    body: formData
-                });
-
+                const response = await fetch('/build', { method: 'POST', body: formData });
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
@@ -1052,10 +808,26 @@
                     }
                 }
             } catch (error) {
+                progressModal.classList.add('hidden');
                 showError('连接服务器失败: ' + error.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = '生成 APK';
             }
+        }
+
+        // 当前构建格式
+        let currentBuildFormat = 'apk';
+
+        // APK 按钮点击
+        submitBtn.addEventListener('click', function () {
+            if (submitBtn.disabled) return;
+            currentBuildFormat = 'apk';
+            handleBuild('apk');
+        });
+
+        // AAB 按钮点击
+        submitBtnAAB.addEventListener('click', function () {
+            if (submitBtnAAB.disabled) return;
+            currentBuildFormat = 'aab';
+            handleBuild('aab');
         });
 
         function handleProgress(data) {
@@ -1066,47 +838,62 @@
                 addProgressItem(data.message, 'done');
             } else if (data.type === 'success') {
                 progressBar.style.width = '100%';
-                formSection.classList.add('hidden');
-                resultSection.classList.add('active');
+                progressModal.classList.add('hidden');
+                // 根据格式更新成功弹窗内容
+                const formatLabel = currentBuildFormat.toUpperCase();
+                document.getElementById('successTitle').textContent = `${formatLabel} 生成成功!`;
+                if (currentBuildFormat === 'aab') {
+                    document.getElementById('successDesc').textContent = '下载包含：AAB包 + 签名证书 + 密码信息';
+                } else {
+                    document.getElementById('successDesc').textContent = '下载包含：APK安装包 + 签名证书 + 密码信息';
+                }
+                successModal.classList.remove('hidden');
                 downloadBtn.href = '/download/' + data.filename;
-                addProgressItem('APK 生成完成!', 'done');
             } else if (data.type === 'error') {
+                progressModal.classList.add('hidden');
                 showError(data.message);
-                addProgressItem(data.message, 'error');
-                submitBtn.disabled = false;
-                submitBtn.textContent = '生成 APK';
             }
         }
 
         function addProgressItem(message, status) {
-            const currentItems = progressStatus.querySelectorAll('.progress-item.current');
+            const currentItems = progressStatus.querySelectorAll('.current');
             currentItems.forEach(item => {
                 item.classList.remove('current');
                 item.classList.add('done');
-                item.querySelector('.progress-icon').innerHTML = '&#10003;';
+                const icon = item.querySelector('.progress-icon');
+                if (icon) icon.innerHTML = '<span class="text-green-500">✓</span>';
             });
 
             const item = document.createElement('div');
-            item.className = 'progress-item ' + status;
+            item.className = 'flex items-center gap-2 ' + status;
 
             let icon = '';
             if (status === 'current') {
                 icon = '<span class="spinner"></span>';
             } else if (status === 'done') {
-                icon = '&#10003;';
+                icon = '<span class="text-green-500">✓</span>';
             } else if (status === 'error') {
-                icon = '&#10007;';
+                icon = '<span class="text-red-500">✗</span>';
             }
 
-            item.innerHTML = `<span class="progress-icon">${icon}</span>${message}`;
+            item.innerHTML = `<span class="progress-icon">${icon}</span><span class="text-[#2D2D2D]/70">${message}</span>`;
             progressStatus.appendChild(item);
             progressStatus.scrollTop = progressStatus.scrollHeight;
         }
 
         function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.add('active');
+            errorMessageEl.textContent = message;
+            errorModal.classList.remove('hidden');
         }
+
+        function closeErrorModal() {
+            errorModal.classList.add('hidden');
+        }
+
+        // Reset
+        resetBtn.addEventListener('click', function () {
+            successModal.classList.add('hidden');
+        });
     </script>
 </body>
 
