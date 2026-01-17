@@ -261,6 +261,39 @@ function stopFgService() {
     showResult('fgServiceResult', '⏹️ 服务已停止');
 }
 
+// ==================== 后台音频播放 ====================
+
+function startBackgroundAudio() {
+    const audio = document.getElementById('bgAudioPlayer');
+
+    // 先播放音频
+    audio.play().then(() => {
+        // 如果在 WebAPK 环境中，启用后台音频 + 前台服务
+        if (typeof Web2APK !== 'undefined') {
+            Web2APK.enableBackgroundAudio(true);
+            Web2APK.startForegroundService('音乐播放中', '正在播放: SoundHelix Song 1');
+            showResult('bgAudioResult', '🎵 音乐播放中，后台模式已启用');
+        } else {
+            showResult('bgAudioResult', '🎵 音乐播放中（浏览器环境，无后台支持）');
+        }
+    }).catch(err => {
+        showResult('bgAudioResult', '❌ 播放失败: ' + err.message);
+    });
+}
+
+function stopBackgroundAudio() {
+    const audio = document.getElementById('bgAudioPlayer');
+    audio.pause();
+    audio.currentTime = 0;
+
+    // 如果在 WebAPK 环境中，禁用后台音频 + 停止前台服务
+    if (typeof Web2APK !== 'undefined') {
+        Web2APK.enableBackgroundAudio(false);
+        Web2APK.stopForegroundService();
+    }
+    showResult('bgAudioResult', '⏹️ 音乐已停止');
+}
+
 // ==================== 桌面小组件 ====================
 
 function testUpdateWidget() {

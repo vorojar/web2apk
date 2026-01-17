@@ -89,6 +89,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var jsCameraLauncher: ActivityResultLauncher<Uri>
     private var jsCameraPhotoUri: Uri? = null
 
+    // 后台音频播放标志
+    private var isBackgroundAudioEnabled = false
+
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -959,6 +962,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // 如果开启了后台音频且前台服务正在运行，不暂停 WebView
+        if (isBackgroundAudioEnabled && ForegroundService.isRunning(this)) {
+            super.onPause()
+            // 注销网络状态监听
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+            try { cm.unregisterNetworkCallback(networkCallback) } catch (e: Exception) {}
+            return
+        }
+
         super.onPause()
         webView.onPause()
         // 注销网络状态监听
@@ -1409,6 +1421,26 @@ class MainActivity : AppCompatActivity() {
         @android.webkit.JavascriptInterface
         fun isForegroundServiceRunning(): Boolean {
             return ForegroundService.isRunning(context)
+        }
+
+        /**
+         * 启用/禁用后台音频播放
+         * 启用后，当应用进入后台时 WebView 不会暂停，音频可以继续播放
+         * 需要配合前台服务使用，否则进程可能被系统杀死
+         * @param enabled true=启用后台音频，false=禁用
+         */
+        @android.webkit.JavascriptInterface
+        fun enableBackgroundAudio(enabled: Boolean) {
+            isBackgroundAudioEnabled = enabled
+        }
+
+        /**
+         * 检查后台音频是否已启用
+         * @return true=已启用
+         */
+        @android.webkit.JavascriptInterface
+        fun isBackgroundAudioEnabled(): Boolean {
+            return isBackgroundAudioEnabled
         }
 
         // =================================================================

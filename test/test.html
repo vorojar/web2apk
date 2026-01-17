@@ -156,6 +156,19 @@
             <div class="hint" id="fgServiceResult">适用于音乐播放、导航等需要后台运行的场景</div>
         </div>
 
+        <!-- 后台音频 -->
+        <div class="card" id="card-background-audio">
+            <h2>🎵 后台音频播放测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="startBackgroundAudio()">▶️ 播放音乐(启用后台)</button>
+                <button class="btn btn-file" onclick="stopBackgroundAudio()">⏹️ 停止音乐</button>
+            </div>
+            <div class="hint" id="bgAudioResult">切换到后台后音乐应继续播放</div>
+            <audio id="bgAudioPlayer" loop>
+                <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+            </audio>
+        </div>
+
         <!-- 桌面小组件 -->
         <div class="card" id="card-widget">
             <h2>📌 桌面小组件测试</h2>
