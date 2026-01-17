@@ -67,6 +67,20 @@ function changeColor(color) {
     meta.content = color;
 }
 
+// ==================== 防截屏 ====================
+
+function enableSecureMode() {
+    if (!checkWeb2APK('secureResult')) return;
+    Web2APK.setSecureMode(true);
+    showResult('secureResult', '🔒 防截屏已开启，现在尝试截屏试试');
+}
+
+function disableSecureMode() {
+    if (!checkWeb2APK('secureResult')) return;
+    Web2APK.setSecureMode(false);
+    showResult('secureResult', '🔓 防截屏已关闭');
+}
+
 // ==================== 缓存清理 ====================
 
 function clearCache() {

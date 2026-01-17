@@ -1534,9 +1534,9 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val color = Color.parseColor(colorHex)
                     val window = (context as? Activity)?.window ?: return@runOnUiThread
-                    
+
                     window.statusBarColor = color
-                    
+
                     // 根据背景色亮度自动调整图标颜色
                     val isDarkBackground = androidx.core.graphics.ColorUtils.calculateLuminance(color) < 0.5
                     WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = !isDarkBackground
@@ -1544,6 +1544,37 @@ class MainActivity : AppCompatActivity() {
                     e.printStackTrace()
                 }
             }
+        }
+
+        /**
+         * 设置防截屏模式
+         * 开启后当前页面无法被截屏或录屏（显示黑屏）
+         * @param enabled true=开启防截屏，false=关闭
+         */
+        @android.webkit.JavascriptInterface
+        fun setSecureMode(enabled: Boolean) {
+            (context as? Activity)?.runOnUiThread {
+                try {
+                    val window = (context as? Activity)?.window ?: return@runOnUiThread
+                    if (enabled) {
+                        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    } else {
+                        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        /**
+         * 检查防截屏模式是否开启
+         * @return true=已开启
+         */
+        @android.webkit.JavascriptInterface
+        fun isSecureMode(): Boolean {
+            val window = (context as? Activity)?.window ?: return false
+            return (window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE) != 0
         }
 
         // ==================== 前台服务（通知栏常驻保活） ====================

@@ -43,6 +43,16 @@
             </div>
         </div>
 
+        <!-- 防截屏 -->
+        <div class="card" id="card-secure">
+            <h2>🔒 防截屏测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="enableSecureMode()">🔒 开启防截屏</button>
+                <button class="btn btn-file" onclick="disableSecureMode()">🔓 关闭防截屏</button>
+            </div>
+            <div class="hint" id="secureResult">开启后尝试截屏，截图将显示黑屏</div>
+        </div>
+
         <!-- 缓存清理 -->
         <div class="card" id="card-cache">
             <h2>🧹 缓存清理</h2>
