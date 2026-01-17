@@ -218,21 +218,6 @@ function testSendSMS() {
 
 // ==================== APP 唤端 ====================
 
-function testGetInstalledApps() {
-    if (!checkWeb2APK('openAppResult')) return;
-    try {
-        const apps = JSON.parse(Web2APK.getInstalledApps());
-        if (apps.length === 0) {
-            showResult('openAppResult', '未检测到常用 APP');
-        } else {
-            const names = apps.map(a => a.name).join('、');
-            showResult('openAppResult', `✅ 已安装: ${names}`);
-        }
-    } catch (e) {
-        showResult('openAppResult', '❌ 检测失败: ' + e.message, false);
-    }
-}
-
 function testOpenTaobao() {
     if (!checkWeb2APK('openAppResult')) return;
     // 打开淘宝，未安装则打开网页版

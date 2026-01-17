@@ -1432,38 +1432,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        /**
-         * 获取已安装的常用 APP 列表
-         * @return JSON 数组，包含已安装的 APP 信息 [{name, packageName, scheme}]
-         */
-        @android.webkit.JavascriptInterface
-        fun getInstalledApps(): String {
-            val apps = listOf(
-                Triple("淘宝", "com.taobao.taobao", "taobao://"),
-                Triple("京东", "com.jingdong.app.mall", "openapp.jdmobile://"),
-                Triple("小红书", "com.xingin.xhs", "xhsdiscover://"),
-                Triple("抖音", "com.ss.android.ugc.aweme", "snssdk1128://"),
-                Triple("微信", "com.tencent.mm", "weixin://"),
-                Triple("支付宝", "com.eg.android.AlipayGphone", "alipays://"),
-                Triple("高德地图", "com.autonavi.minimap", "amapuri://"),
-                Triple("百度地图", "com.baidu.BaiduMap", "baidumap://"),
-                Triple("美团", "com.sankuai.meituan", "imeituan://"),
-                Triple("饿了么", "com.ele.me", "eleme://"),
-                Triple("拼多多", "com.xunmeng.pinduoduo", "pinduoduo://")
-            )
-
-            val installed = apps.filter { isAppInstalled(it.second) }
-            val jsonArray = org.json.JSONArray()
-            for (app in installed) {
-                val obj = org.json.JSONObject()
-                obj.put("name", app.first)
-                obj.put("packageName", app.second)
-                obj.put("scheme", app.third)
-                jsonArray.put(obj)
-            }
-            return jsonArray.toString()
-        }
-
         // ==================== 图片预览接口 ====================
 
         /**

@@ -2,6 +2,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Android 11+ 包可见性声明，用于检测和打开其他 APP -->
+    <queries>
+        <!-- 电商 -->
+        <package android:name="com.taobao.taobao" />
+        <package android:name="com.jingdong.app.mall" />
+        <package android:name="com.xunmeng.pinduoduo" />
+        <!-- 社交 -->
+        <package android:name="com.tencent.mm" />
+        <package android:name="com.xingin.xhs" />
+        <package android:name="com.ss.android.ugc.aweme" />
+        <!-- 支付 -->
+        <package android:name="com.eg.android.AlipayGphone" />
+        <!-- 地图 -->
+        <package android:name="com.autonavi.minimap" />
+        <package android:name="com.baidu.BaiduMap" />
+        <!-- 外卖 -->
+        <package android:name="com.sankuai.meituan" />
+        <package android:name="com.ele.me" />
+        <!-- 允许打开任意 URL Scheme -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="*" />
+        </intent>
+    </queries>
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
