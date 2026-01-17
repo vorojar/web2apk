@@ -393,6 +393,52 @@ function stopRecordingTimer() {
     document.getElementById('recordingTimer').style.display = 'none';
 }
 
+// ==================== 视频录制功能 ====================
+
+function startVideoRecording() {
+    if (!checkWeb2APK('videoRecordingResult')) return;
+    showResult('videoRecordingResult', '📹 正在启动相机...');
+    document.getElementById('videoRecordingPlayback').style.display = 'none';
+    Web2APK.startVideoRecording(0, 'medium', 'back');
+}
+
+function startVideoRecordingFront() {
+    if (!checkWeb2APK('videoRecordingResult')) return;
+    showResult('videoRecordingResult', '🤳 正在启动前置相机...');
+    document.getElementById('videoRecordingPlayback').style.display = 'none';
+    Web2APK.startVideoRecording(0, 'medium', 'front');
+}
+
+function startVideoRecording30s() {
+    if (!checkWeb2APK('videoRecordingResult')) return;
+    showResult('videoRecordingResult', '⏱️ 正在启动相机（限时30秒）...');
+    document.getElementById('videoRecordingPlayback').style.display = 'none';
+    Web2APK.startVideoRecording(30, 'high', 'back');
+}
+
+// 视频录制完成回调
+function onVideoRecordingComplete(base64, durationMs) {
+    const seconds = (durationMs / 1000).toFixed(1);
+    showResult('videoRecordingResult', `✅ 录制完成，时长 ${seconds} 秒`);
+
+    // 播放视频
+    const video = document.getElementById('videoRecordingPlayback');
+    video.src = 'data:video/mp4;base64,' + base64;
+    video.style.display = 'block';
+}
+
+// 视频录制取消回调
+function onVideoRecordingCancelled() {
+    showResult('videoRecordingResult', '❌ 录制已取消');
+    document.getElementById('videoRecordingPlayback').style.display = 'none';
+}
+
+// 视频录制错误回调
+function onVideoRecordingError(message) {
+    showResult('videoRecordingResult', '❌ 录制失败: ' + message, false);
+    document.getElementById('videoRecordingPlayback').style.display = 'none';
+}
+
 // ==================== 桌面小组件 ====================
 
 function testUpdateWidget() {

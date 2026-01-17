@@ -82,6 +82,12 @@
             android:name="com.webapk.app.ImagePreviewActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- 视频录制 -->
+        <activity
+            android:name="com.webapk.app.VideoRecordActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- FileProvider 用于拍照 -->
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -148,6 +148,18 @@
             <audio id="recordingPlayback" controls style="display:none;width:100%;margin-top:10px;"></audio>
         </div>
 
+        <!-- 视频录制 -->
+        <div class="card" id="card-video-recording">
+            <h2>📹 视频录制测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" onclick="startVideoRecording()">📹 录制视频</button>
+                <button class="btn btn-camera" onclick="startVideoRecordingFront()">🤳 前置录制</button>
+                <button class="btn btn-doc" onclick="startVideoRecording30s()">⏱️ 限时30秒</button>
+            </div>
+            <div class="hint" id="videoRecordingResult">点击按钮测试视频录制功能</div>
+            <video id="videoRecordingPlayback" controls style="display:none;width:100%;margin-top:10px;max-height:300px;"></video>
+        </div>
+
         <!-- 设备控制 -->
         <div class="card" id="card-device-control">
             <h2>💡 屏幕常亮 & 振动测试</h2>

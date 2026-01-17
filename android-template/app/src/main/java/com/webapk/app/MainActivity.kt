@@ -99,6 +99,9 @@ class MainActivity : AppCompatActivity() {
     private var recordingStartTime: Long = 0
     private var isRecording = false
 
+    // 视频录制相关
+    private lateinit var videoRecordLauncher: ActivityResultLauncher<Intent>
+
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -311,6 +314,45 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             jsCameraPhotoUri = null
+        }
+
+        // 视频录制结果
+        videoRecordLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val videoPath = result.data?.getStringExtra(VideoRecordActivity.RESULT_VIDEO_PATH)
+                val duration = result.data?.getLongExtra(VideoRecordActivity.RESULT_DURATION, 0) ?: 0
+                if (!videoPath.isNullOrEmpty()) {
+                    try {
+                        // 读取视频文件并转为 Base64
+                        val videoFile = File(videoPath)
+                        val bytes = videoFile.readBytes()
+                        val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                        // 删除临时文件
+                        videoFile.delete()
+                        // 转义防止注入
+                        webView.evaluateJavascript(
+                            "if(typeof onVideoRecordingComplete==='function'){onVideoRecordingComplete('$base64',$duration)}",
+                            null
+                        )
+                    } catch (e: Exception) {
+                        val errorMsg = e.message?.replace("'", "\\'") ?: "读取视频失败"
+                        webView.evaluateJavascript(
+                            "if(typeof onVideoRecordingError==='function'){onVideoRecordingError('$errorMsg')}",
+                            null
+                        )
+                    }
+                } else {
+                    webView.evaluateJavascript(
+                        "if(typeof onVideoRecordingError==='function'){onVideoRecordingError('录制失败')}",
+                        null
+                    )
+                }
+            } else {
+                webView.evaluateJavascript(
+                    "if(typeof onVideoRecordingCancelled==='function'){onVideoRecordingCancelled()}",
+                    null
+                )
+            }
         }
     }
 
@@ -1671,6 +1713,47 @@ class MainActivity : AppCompatActivity() {
             } else {
                 0
             }
+        }
+
+        // ==================== 视频录制接口 ====================
+
+        /**
+         * 启动视频录制界面
+         * @param maxDuration 最大录制时长（秒），0=不限制
+         * @param quality 视频质量: low/medium/high，默认 medium
+         * @param cameraFacing 摄像头方向: front/back，默认 back
+         *
+         * 成功时回调 onVideoRecordingComplete(base64, durationMs)
+         * 取消时回调 onVideoRecordingCancelled()
+         * 失败时回调 onVideoRecordingError(message)
+         */
+        @android.webkit.JavascriptInterface
+        fun startVideoRecording(maxDuration: Int, quality: String?, cameraFacing: String?) {
+            this@MainActivity.runOnUiThread {
+                val intent = Intent(context, VideoRecordActivity::class.java).apply {
+                    putExtra(VideoRecordActivity.EXTRA_MAX_DURATION, maxDuration)
+                    putExtra(VideoRecordActivity.EXTRA_QUALITY, quality ?: "medium")
+                    putExtra(VideoRecordActivity.EXTRA_CAMERA_FACING, cameraFacing ?: "back")
+                }
+                videoRecordLauncher.launch(intent)
+            }
+        }
+
+        /**
+         * 启动视频录制界面（简化版，使用默认参数）
+         */
+        @android.webkit.JavascriptInterface
+        fun startVideoRecording() {
+            startVideoRecording(0, "medium", "back")
+        }
+
+        /**
+         * 检查视频录制是否可用
+         * @return true=设备支持视频录制
+         */
+        @android.webkit.JavascriptInterface
+        fun isVideoRecordingAvailable(): Boolean {
+            return context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
         }
 
         // =================================================================
