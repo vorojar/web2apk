@@ -92,6 +92,13 @@ class MainActivity : AppCompatActivity() {
     // 后台音频播放标志
     private var isBackgroundAudioEnabled = false
 
+    // 录音相关
+    private lateinit var recordPermissionLauncher: ActivityResultLauncher<String>
+    private var mediaRecorder: android.media.MediaRecorder? = null
+    private var recordingFile: File? = null
+    private var recordingStartTime: Long = 0
+    private var isRecording = false
+
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -223,6 +230,20 @@ class MainActivity : AppCompatActivity() {
         notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
                 Toast.makeText(this, "需要通知权限才能接收提醒", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 录音权限请求
+        recordPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                // 权限已授予，开始录音
+                startRecordingInternal()
+            } else {
+                Toast.makeText(this, "需要麦克风权限才能录音", Toast.LENGTH_SHORT).show()
+                webView.evaluateJavascript(
+                    "if(typeof onRecordingError==='function'){onRecordingError('PERMISSION_DENIED')}",
+                    null
+                )
             }
         }
 
@@ -1012,6 +1033,119 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ==================== 录音相关方法 ====================
+
+    /**
+     * 开始录音（内部方法，权限已授予后调用）
+     */
+    private fun startRecordingInternal() {
+        try {
+            // 创建临时文件存储录音
+            val cacheDir = File(cacheDir, "recordings")
+            if (!cacheDir.exists()) cacheDir.mkdirs()
+            recordingFile = File(cacheDir, "recording_${System.currentTimeMillis()}.m4a")
+
+            // 配置 MediaRecorder
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                android.media.MediaRecorder(this)
+            } else {
+                @Suppress("DEPRECATION")
+                android.media.MediaRecorder()
+            }.apply {
+                setAudioSource(android.media.MediaRecorder.AudioSource.MIC)
+                setOutputFormat(android.media.MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(android.media.MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(128000)
+                setAudioSamplingRate(44100)
+                setOutputFile(recordingFile!!.absolutePath)
+                prepare()
+                start()
+            }
+
+            isRecording = true
+            recordingStartTime = System.currentTimeMillis()
+
+            runOnUiThread {
+                webView.evaluateJavascript(
+                    "if(typeof onRecordingStarted==='function'){onRecordingStarted()}",
+                    null
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            cleanupRecording()
+            runOnUiThread {
+                val errorMsg = e.message?.replace("'", "\\'") ?: "录音启动失败"
+                webView.evaluateJavascript(
+                    "if(typeof onRecordingError==='function'){onRecordingError('$errorMsg')}",
+                    null
+                )
+            }
+        }
+    }
+
+    /**
+     * 停止录音并返回数据
+     */
+    private fun stopRecordingInternal(): Pair<String, Long>? {
+        if (!isRecording || mediaRecorder == null || recordingFile == null) {
+            return null
+        }
+
+        val duration = System.currentTimeMillis() - recordingStartTime
+
+        try {
+            mediaRecorder?.apply {
+                stop()
+                release()
+            }
+            mediaRecorder = null
+            isRecording = false
+
+            // 读取文件并转为 Base64
+            val audioBytes = recordingFile!!.readBytes()
+            val base64 = android.util.Base64.encodeToString(audioBytes, android.util.Base64.NO_WRAP)
+
+            // 删除临时文件
+            recordingFile?.delete()
+            recordingFile = null
+
+            return Pair(base64, duration)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            cleanupRecording()
+            return null
+        }
+    }
+
+    /**
+     * 取消录音（不返回数据）
+     */
+    private fun cancelRecordingInternal() {
+        if (!isRecording) return
+
+        try {
+            mediaRecorder?.apply {
+                stop()
+                release()
+            }
+        } catch (e: Exception) {
+            // 忽略错误
+        }
+        cleanupRecording()
+    }
+
+    /**
+     * 清理录音资源
+     */
+    private fun cleanupRecording() {
+        mediaRecorder = null
+        isRecording = false
+        recordingStartTime = 0
+        recordingFile?.delete()
+        recordingFile = null
+    }
+
     /**
      * JavaScript Interface - 提供原生能力给网页
      * 网页可通过 window.Web2APK.xxx() 调用
@@ -1441,6 +1575,102 @@ class MainActivity : AppCompatActivity() {
         @android.webkit.JavascriptInterface
         fun isBackgroundAudioEnabled(): Boolean {
             return isBackgroundAudioEnabled
+        }
+
+        // ==================== 录音接口 ====================
+
+        /**
+         * 开始录音
+         * 成功时回调 onRecordingStarted()
+         * 失败时回调 onRecordingError(error)
+         */
+        @android.webkit.JavascriptInterface
+        fun startRecording() {
+            this@MainActivity.runOnUiThread {
+                if (isRecording) {
+                    webView.evaluateJavascript(
+                        "if(typeof onRecordingError==='function'){onRecordingError('ALREADY_RECORDING')}",
+                        null
+                    )
+                    return@runOnUiThread
+                }
+
+                // 检查权限
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED) {
+                    startRecordingInternal()
+                } else {
+                    recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            }
+        }
+
+        /**
+         * 停止录音并获取音频数据
+         * 成功时回调 onRecordingComplete(base64, durationMs)
+         * 失败时回调 onRecordingError(error)
+         */
+        @android.webkit.JavascriptInterface
+        fun stopRecording() {
+            this@MainActivity.runOnUiThread {
+                if (!isRecording) {
+                    webView.evaluateJavascript(
+                        "if(typeof onRecordingError==='function'){onRecordingError('NOT_RECORDING')}",
+                        null
+                    )
+                    return@runOnUiThread
+                }
+
+                val result = stopRecordingInternal()
+                if (result != null) {
+                    val (base64, duration) = result
+                    webView.evaluateJavascript(
+                        "if(typeof onRecordingComplete==='function'){onRecordingComplete('$base64',$duration)}",
+                        null
+                    )
+                } else {
+                    webView.evaluateJavascript(
+                        "if(typeof onRecordingError==='function'){onRecordingError('STOP_FAILED')}",
+                        null
+                    )
+                }
+            }
+        }
+
+        /**
+         * 取消录音（不返回数据）
+         */
+        @android.webkit.JavascriptInterface
+        fun cancelRecording() {
+            this@MainActivity.runOnUiThread {
+                cancelRecordingInternal()
+                webView.evaluateJavascript(
+                    "if(typeof onRecordingCancelled==='function'){onRecordingCancelled()}",
+                    null
+                )
+            }
+        }
+
+        /**
+         * 检查是否正在录音
+         * @return true=正在录音
+         */
+        @android.webkit.JavascriptInterface
+        fun isRecording(): Boolean {
+            return isRecording
+        }
+
+        /**
+         * 获取当前录音时长（毫秒）
+         * @return 录音时长，未录音时返回 0
+         */
+        @android.webkit.JavascriptInterface
+        fun getRecordingDuration(): Long {
+            return if (isRecording) {
+                System.currentTimeMillis() - recordingStartTime
+            } else {
+                0
+            }
         }
 
         // =================================================================

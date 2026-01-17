@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!-- 生物识别权限（无需运行时请求） -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- 录音权限（运行时请求） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- 前台服务权限（Android 9+） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- 前台服务类型权限（Android 14+），使用 MEDIA_PLAYBACK 覆盖音乐/视频等场景 -->
@@ -25,6 +27,7 @@
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
         android:allowBackup="true"

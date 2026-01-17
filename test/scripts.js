@@ -294,6 +294,105 @@ function stopBackgroundAudio() {
     showResult('bgAudioResult', '⏹️ 音乐已停止');
 }
 
+// ==================== 录音功能 ====================
+
+let recordingTimerInterval = null;
+let recordingStartTime = 0;
+
+function startRecording() {
+    if (!checkWeb2APK('recordingResult')) return;
+    Web2APK.startRecording();
+}
+
+function stopRecording() {
+    if (!checkWeb2APK('recordingResult')) return;
+    Web2APK.stopRecording();
+}
+
+function cancelRecording() {
+    if (!checkWeb2APK('recordingResult')) return;
+    Web2APK.cancelRecording();
+}
+
+// 录音开始回调
+function onRecordingStarted() {
+    document.getElementById('btnStartRecord').disabled = true;
+    document.getElementById('btnStopRecord').disabled = false;
+    document.getElementById('btnCancelRecord').disabled = false;
+    document.getElementById('recordingTimer').style.display = 'block';
+    document.getElementById('recordingPlayback').style.display = 'none';
+
+    recordingStartTime = Date.now();
+    updateRecordingTimer();
+    recordingTimerInterval = setInterval(updateRecordingTimer, 100);
+
+    showResult('recordingResult', '🔴 正在录音...');
+}
+
+// 录音完成回调
+function onRecordingComplete(base64, durationMs) {
+    stopRecordingTimer();
+
+    document.getElementById('btnStartRecord').disabled = false;
+    document.getElementById('btnStopRecord').disabled = true;
+    document.getElementById('btnCancelRecord').disabled = true;
+
+    const seconds = (durationMs / 1000).toFixed(1);
+    showResult('recordingResult', `✅ 录音完成，时长 ${seconds} 秒`);
+
+    // 播放录音
+    const audio = document.getElementById('recordingPlayback');
+    audio.src = 'data:audio/mp4;base64,' + base64;
+    audio.style.display = 'block';
+}
+
+// 录音取消回调
+function onRecordingCancelled() {
+    stopRecordingTimer();
+
+    document.getElementById('btnStartRecord').disabled = false;
+    document.getElementById('btnStopRecord').disabled = true;
+    document.getElementById('btnCancelRecord').disabled = true;
+    document.getElementById('recordingPlayback').style.display = 'none';
+
+    showResult('recordingResult', '❌ 录音已取消');
+}
+
+// 录音错误回调
+function onRecordingError(error) {
+    stopRecordingTimer();
+
+    document.getElementById('btnStartRecord').disabled = false;
+    document.getElementById('btnStopRecord').disabled = true;
+    document.getElementById('btnCancelRecord').disabled = true;
+
+    const errorMessages = {
+        'PERMISSION_DENIED': '麦克风权限被拒绝',
+        'ALREADY_RECORDING': '已在录音中',
+        'NOT_RECORDING': '未在录音',
+        'STOP_FAILED': '停止录音失败'
+    };
+    const msg = errorMessages[error] || error;
+    showResult('recordingResult', '❌ 错误: ' + msg);
+}
+
+function updateRecordingTimer() {
+    const elapsed = Date.now() - recordingStartTime;
+    const seconds = Math.floor(elapsed / 1000);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    document.getElementById('recordingTimer').textContent =
+        `⏱️ ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function stopRecordingTimer() {
+    if (recordingTimerInterval) {
+        clearInterval(recordingTimerInterval);
+        recordingTimerInterval = null;
+    }
+    document.getElementById('recordingTimer').style.display = 'none';
+}
+
 // ==================== 桌面小组件 ====================
 
 function testUpdateWidget() {

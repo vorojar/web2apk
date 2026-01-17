@@ -135,6 +135,19 @@
             <div class="hint" id="imagePreviewResult">点击按钮测试原生图片预览（支持缩放、保存、分享）</div>
         </div>
 
+        <!-- 录音 -->
+        <div class="card" id="card-recording">
+            <h2>🎤 录音测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-download" id="btnStartRecord" onclick="startRecording()">🎤 开始录音</button>
+                <button class="btn btn-file" id="btnStopRecord" onclick="stopRecording()" disabled>⏹️ 停止录音</button>
+                <button class="btn btn-camera" id="btnCancelRecord" onclick="cancelRecording()" disabled>❌ 取消</button>
+            </div>
+            <div class="hint" id="recordingResult">点击按钮测试录音功能</div>
+            <div class="hint" id="recordingTimer" style="display:none;font-size:24px;color:#e74c3c;">⏱️ 00:00</div>
+            <audio id="recordingPlayback" controls style="display:none;width:100%;margin-top:10px;"></audio>
+        </div>
+
         <!-- 设备控制 -->
         <div class="card" id="card-device-control">
             <h2>💡 屏幕常亮 & 振动测试</h2>
