@@ -1469,5 +1469,45 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        // ==================== FCM 推送 ====================
+
+        /**
+         * 检查 FCM 推送是否可用
+         * @return true=已启用 FCM 且 Google Play Services 可用
+         */
+        @android.webkit.JavascriptInterface
+        fun isFcmAvailable(): Boolean {
+            // FCM_ENABLED_PLACEHOLDER - 由构建时动态替换
+            return false
+        }
+
+        /**
+         * 获取 FCM Token（设备唯一标识，用于定向推送）
+         * 结果通过 onFcmToken(token) 或 onFcmError(message) 回调
+         */
+        @android.webkit.JavascriptInterface
+        fun getFcmToken() {
+            this@MainActivity.runOnUiThread {
+                webView.evaluateJavascript(
+                    "if(typeof onFcmError==='function'){onFcmError('未启用 FCM 推送功能')}",
+                    null
+                )
+            }
+        }
+
+        /**
+         * 注册推送（获取 Token 并回调）
+         * 结果通过 onPushRegistered(success, token) 回调
+         */
+        @android.webkit.JavascriptInterface
+        fun registerPush() {
+            this@MainActivity.runOnUiThread {
+                webView.evaluateJavascript(
+                    "if(typeof onPushRegistered==='function'){onPushRegistered(false,'')}",
+                    null
+                )
+            }
+        }
     }
 }

@@ -137,7 +137,7 @@ def process_icon(icon_path, build_dir):
         return str(e)
 
 
-def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000', pull_to_refresh=False, google_client_id=''):
+def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, screen_orientation='unspecified', fullscreen=False, splash_color='#f8f9fa', version_name='1.0', status_bar_color='#000000', pull_to_refresh=False, google_client_id='', fcm_config_path=None):
     """构建 APK 的生成器函数
 
     existing_keystore: 可选，用户上传的已有证书信息
@@ -153,6 +153,7 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
     version_name: 版本号 (显示给用户)
     status_bar_color: 状态栏颜色 (十六进制颜色值)
     pull_to_refresh: 是否启用下拉刷新
+    fcm_config_path: FCM 配置文件路径 (google-services.json)
     """
     build_id = str(uuid.uuid4())[:8]
     build_dir = OUTPUT_DIR / f'build_{build_id}'
@@ -285,6 +286,129 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
             'release {\n            signingConfig signingConfigs.release\n            minifyEnabled false'
         )
 
+        # 处理 FCM 推送配置
+        enable_fcm = fcm_config_path is not None
+        if enable_fcm:
+            # 复制 google-services.json 到 app 目录
+            fcm_dest = build_dir / 'app' / 'google-services.json'
+            shutil.copy(fcm_config_path, fcm_dest)
+
+            # 修改 project-level build.gradle 添加 google-services 插件
+            project_gradle_path = build_dir / 'build.gradle'
+            project_gradle_content = project_gradle_path.read_text(encoding='utf-8')
+            if "id 'com.google.gms.google-services'" not in project_gradle_content:
+                project_gradle_content = project_gradle_content.replace(
+                    "id 'com.android.application' version '8.1.0' apply false",
+                    "id 'com.android.application' version '8.1.0' apply false\n    id 'com.google.gms.google-services' version '4.4.0' apply false"
+                )
+                project_gradle_path.write_text(project_gradle_content, encoding='utf-8')
+
+            # 修改 app-level build.gradle 添加 FCM 依赖
+            gradle_content = gradle_content.replace(
+                "id 'org.jetbrains.kotlin.android'",
+                "id 'org.jetbrains.kotlin.android'\n    id 'com.google.gms.google-services'"
+            )
+            # 添加 Firebase BOM 和 FCM 依赖
+            gradle_content = gradle_content.replace(
+                "implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'",
+                "implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'\n\n    // Firebase\n    implementation platform('com.google.firebase:firebase-bom:32.7.0')\n    implementation 'com.google.firebase:firebase-messaging-ktx'"
+            )
+        else:
+            # 移除 FCM Service 文件
+            fcm_service_path = build_dir / 'app' / 'src' / 'main' / 'java' / 'com' / 'webapk' / 'app' / 'FCMService.kt'
+            if fcm_service_path.exists():
+                fcm_service_path.unlink()
+
+        # 动态替换 FCM JS 接口
+        main_kt_path = build_dir / 'app' / 'src' / 'main' / 'java' / 'com' / 'webapk' / 'app' / 'MainActivity.kt'
+        main_kt_content = main_kt_path.read_text(encoding='utf-8')
+
+        if enable_fcm:
+            # 替换 isFcmAvailable 方法
+            main_kt_content = main_kt_content.replace(
+                '''        @android.webkit.JavascriptInterface
+        fun isFcmAvailable(): Boolean {
+            // FCM_ENABLED_PLACEHOLDER - 由构建时动态替换
+            return false
+        }''',
+                '''        @android.webkit.JavascriptInterface
+        fun isFcmAvailable(): Boolean {
+            return com.google.android.gms.common.GoogleApiAvailability.getInstance()
+                .isGooglePlayServicesAvailable(context) == com.google.android.gms.common.ConnectionResult.SUCCESS
+        }'''
+            )
+
+            # 替换 getFcmToken 方法
+            main_kt_content = main_kt_content.replace(
+                '''        @android.webkit.JavascriptInterface
+        fun getFcmToken() {
+            this@MainActivity.runOnUiThread {
+                webView.evaluateJavascript(
+                    "if(typeof onFcmError==='function'){onFcmError('未启用 FCM 推送功能')}",
+                    null
+                )
+            }
+        }''',
+                '''        @android.webkit.JavascriptInterface
+        fun getFcmToken() {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+                .addOnSuccessListener { token ->
+                    this@MainActivity.runOnUiThread {
+                        val safeToken = token.replace("'", "\\\\'")
+                        webView.evaluateJavascript(
+                            "if(typeof onFcmToken==='function'){onFcmToken('$safeToken')}",
+                            null
+                        )
+                    }
+                }
+                .addOnFailureListener { e ->
+                    this@MainActivity.runOnUiThread {
+                        val safeMessage = (e.message ?: "获取 Token 失败").replace("'", "\\\\'")
+                        webView.evaluateJavascript(
+                            "if(typeof onFcmError==='function'){onFcmError('$safeMessage')}",
+                            null
+                        )
+                    }
+                }
+        }'''
+            )
+
+            # 替换 registerPush 方法
+            main_kt_content = main_kt_content.replace(
+                '''        @android.webkit.JavascriptInterface
+        fun registerPush() {
+            this@MainActivity.runOnUiThread {
+                webView.evaluateJavascript(
+                    "if(typeof onPushRegistered==='function'){onPushRegistered(false,'')}",
+                    null
+                )
+            }
+        }''',
+                '''        @android.webkit.JavascriptInterface
+        fun registerPush() {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+                .addOnSuccessListener { token ->
+                    this@MainActivity.runOnUiThread {
+                        val safeToken = token.replace("'", "\\\\'")
+                        webView.evaluateJavascript(
+                            "if(typeof onPushRegistered==='function'){onPushRegistered(true,'$safeToken')}",
+                            null
+                        )
+                    }
+                }
+                .addOnFailureListener { e ->
+                    this@MainActivity.runOnUiThread {
+                        webView.evaluateJavascript(
+                            "if(typeof onPushRegistered==='function'){onPushRegistered(false,'')}",
+                            null
+                        )
+                    }
+                }
+        }'''
+            )
+
+        main_kt_path.write_text(main_kt_content, encoding='utf-8')
+
         # 动态注入 Google 登录依赖（只有填写了 Client ID 才添加）
         if not google_client_id:
             # 移除 Google Play Services Auth 依赖，减少 APK 体积
@@ -347,6 +471,22 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
             manifest_content = manifest_content.replace(
                 'android:configChanges="orientation|screenSize|keyboardHidden|uiMode"',
                 f'android:configChanges="orientation|screenSize|keyboardHidden|uiMode"\n            android:screenOrientation="{screen_orientation}"'
+            )
+
+        # 添加 FCM Service 注册
+        if enable_fcm:
+            fcm_service_declaration = '''
+        <!-- FCM 推送服务 -->
+        <service
+            android:name=".FCMService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>'''
+            manifest_content = manifest_content.replace(
+                '</application>',
+                fcm_service_declaration + '\n    </application>'
             )
 
         manifest_path.write_text(manifest_content, encoding='utf-8')
@@ -706,8 +846,16 @@ def build():
         # 获取高级功能配置
         google_client_id = request.form.get('googleClientId', '').strip()
 
+        # 处理 FCM 配置文件
+        fcm_config_path = None
+        fcm_config = request.files.get('fcmConfig')
+        if fcm_config:
+            fcm_filename = f'{uuid.uuid4()}_google-services.json'
+            fcm_config_path = UPLOAD_DIR / fcm_filename
+            fcm_config.save(fcm_config_path)
+
         # 返回流式响应
-        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color, pull_to_refresh, google_client_id))
+        return stream_response(build_apk(app_name, package_name, url, icon_path, existing_keystore, screen_orientation, fullscreen, splash_color, version_name, status_bar_color, pull_to_refresh, google_client_id, fcm_config_path))
 
     except Exception as e:
         return stream_response([send_error(f'服务器错误: {str(e)}')])

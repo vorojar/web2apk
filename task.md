@@ -48,12 +48,18 @@
 - [x] **动态状态栏** - 支持 JS/Meta 标签动态修改状态栏颜色
 
 ### 复杂（需后端/第三方服务）
-- [ ] **推送通知** - 远程消息推送（需 FCM/极光推送等）
+- [ ] **推送通知** - 远程消息推送
+  - [x] FCM 推送（海外）- Firebase Cloud Messaging，上传 google-services.json 即可 [控制台](https://console.firebase.google.com/)
+  - [ ] 极光推送（国内）- 聚合厂商通道，到达率高 [申请地址](https://www.jiguang.cn/)
+  - [ ] 个推（国内）- 备选方案 [申请地址](https://www.getui.com/)
 - [ ] **微信登录** - 微信授权登录（需企业资质）[申请地址](https://open.weixin.qq.com/)
 - [ ] **支付功能** - 微信/支付宝支付（需商户账号）
 
 ### 高级功能（海外）
 - [x] **Google 登录** - Google 账号一键登录（海外可用，个人可申请）[申请地址](https://console.cloud.google.com/)
+
+### 基础架构
+- [x] **目标市场切换** - 海外/中国大陆一键切换，自动匹配对应功能配置
 
 ---
 
