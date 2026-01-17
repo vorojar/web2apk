@@ -100,7 +100,11 @@ class MainActivity : AppCompatActivity() {
     private var isRecording = false
 
     // 视频录制相关
-    private lateinit var videoRecordLauncher: ActivityResultLauncher<Intent>
+    private lateinit var videoRecordLauncher: ActivityResultLauncher<Uri>
+    private lateinit var videoPermissionLauncher: ActivityResultLauncher<String>
+    private var videoRecordUri: Uri? = null
+    private var videoRecordFile: File? = null
+    private var videoRecordStartTime: Long = 0
 
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
@@ -316,43 +320,49 @@ class MainActivity : AppCompatActivity() {
             jsCameraPhotoUri = null
         }
 
-        // 视频录制结果
-        videoRecordLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val videoPath = result.data?.getStringExtra(VideoRecordActivity.RESULT_VIDEO_PATH)
-                val duration = result.data?.getLongExtra(VideoRecordActivity.RESULT_DURATION, 0) ?: 0
-                if (!videoPath.isNullOrEmpty()) {
-                    try {
-                        // 读取视频文件并转为 Base64
-                        val videoFile = File(videoPath)
-                        val bytes = videoFile.readBytes()
-                        val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-                        // 删除临时文件
-                        videoFile.delete()
-                        // 转义防止注入
-                        webView.evaluateJavascript(
-                            "if(typeof onVideoRecordingComplete==='function'){onVideoRecordingComplete('$base64',$duration)}",
-                            null
-                        )
-                    } catch (e: Exception) {
-                        val errorMsg = e.message?.replace("'", "\\'") ?: "读取视频失败"
-                        webView.evaluateJavascript(
-                            "if(typeof onVideoRecordingError==='function'){onVideoRecordingError('$errorMsg')}",
-                            null
-                        )
-                    }
-                } else {
+        // 视频录制权限
+        videoPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                launchVideoCapture()
+            } else {
+                webView.evaluateJavascript(
+                    "if(typeof onVideoRecordingError==='function'){onVideoRecordingError('相机权限被拒绝')}",
+                    null
+                )
+            }
+        }
+
+        // 视频录制结果（使用系统相机）
+        videoRecordLauncher = registerForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
+            val duration = System.currentTimeMillis() - videoRecordStartTime
+            if (success && videoRecordFile != null && videoRecordFile!!.exists()) {
+                try {
+                    // 读取视频文件并转为 Base64
+                    val bytes = videoRecordFile!!.readBytes()
+                    val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                    // 删除临时文件
+                    videoRecordFile!!.delete()
                     webView.evaluateJavascript(
-                        "if(typeof onVideoRecordingError==='function'){onVideoRecordingError('录制失败')}",
+                        "if(typeof onVideoRecordingComplete==='function'){onVideoRecordingComplete('$base64',$duration)}",
+                        null
+                    )
+                } catch (e: Exception) {
+                    val errorMsg = e.message?.replace("'", "\\'") ?: "读取视频失败"
+                    webView.evaluateJavascript(
+                        "if(typeof onVideoRecordingError==='function'){onVideoRecordingError('$errorMsg')}",
                         null
                     )
                 }
             } else {
+                // 用户取消或录制失败
+                videoRecordFile?.delete()
                 webView.evaluateJavascript(
                     "if(typeof onVideoRecordingCancelled==='function'){onVideoRecordingCancelled()}",
                     null
                 )
             }
+            videoRecordUri = null
+            videoRecordFile = null
         }
     }
 
@@ -1189,6 +1199,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * 启动视频录制（内部方法，权限已授予后调用）
+     */
+    private fun launchVideoCapture() {
+        try {
+            // 创建视频文件
+            val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+            val videoDir = File(cacheDir, "videos")
+            if (!videoDir.exists()) videoDir.mkdirs()
+            videoRecordFile = File(videoDir, "VID_$timeStamp.mp4")
+
+            // 获取 FileProvider Uri
+            videoRecordUri = androidx.core.content.FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                videoRecordFile!!
+            )
+
+            // 记录开始时间
+            videoRecordStartTime = System.currentTimeMillis()
+
+            // 启动系统相机
+            videoRecordLauncher.launch(videoRecordUri!!)
+        } catch (e: Exception) {
+            val errorMsg = e.message?.replace("'", "\\'") ?: "启动相机失败"
+            webView.evaluateJavascript(
+                "if(typeof onVideoRecordingError==='function'){onVideoRecordingError('$errorMsg')}",
+                null
+            )
+        }
+    }
+
+    /**
      * JavaScript Interface - 提供原生能力给网页
      * 网页可通过 window.Web2APK.xxx() 调用
      */
@@ -1823,33 +1865,23 @@ class MainActivity : AppCompatActivity() {
         // ==================== 视频录制接口 ====================
 
         /**
-         * 启动视频录制界面
-         * @param maxDuration 最大录制时长（秒），0=不限制
-         * @param quality 视频质量: low/medium/high，默认 medium
-         * @param cameraFacing 摄像头方向: front/back，默认 back
+         * 启动系统相机录制视频
+         * 使用系统相机 APP 录制，更稳定、用户更熟悉
          *
          * 成功时回调 onVideoRecordingComplete(base64, durationMs)
          * 取消时回调 onVideoRecordingCancelled()
          * 失败时回调 onVideoRecordingError(message)
          */
         @android.webkit.JavascriptInterface
-        fun startVideoRecording(maxDuration: Int, quality: String?, cameraFacing: String?) {
-            this@MainActivity.runOnUiThread {
-                val intent = Intent(context, VideoRecordActivity::class.java).apply {
-                    putExtra(VideoRecordActivity.EXTRA_MAX_DURATION, maxDuration)
-                    putExtra(VideoRecordActivity.EXTRA_QUALITY, quality ?: "medium")
-                    putExtra(VideoRecordActivity.EXTRA_CAMERA_FACING, cameraFacing ?: "back")
-                }
-                videoRecordLauncher.launch(intent)
-            }
-        }
-
-        /**
-         * 启动视频录制界面（简化版，使用默认参数）
-         */
-        @android.webkit.JavascriptInterface
         fun startVideoRecording() {
-            startVideoRecording(0, "medium", "back")
+            this@MainActivity.runOnUiThread {
+                // 检查相机权限
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    launchVideoCapture()
+                } else {
+                    videoPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            }
         }
 
         /**

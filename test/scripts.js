@@ -460,23 +460,9 @@ function stopRecordingTimer() {
 
 function startVideoRecording() {
     if (!checkWeb2APK('videoRecordingResult')) return;
-    showResult('videoRecordingResult', '📹 正在启动相机...');
+    showResult('videoRecordingResult', '📹 正在启动系统相机...');
     document.getElementById('videoRecordingPlayback').style.display = 'none';
-    Web2APK.startVideoRecording(0, 'medium', 'back');
-}
-
-function startVideoRecordingFront() {
-    if (!checkWeb2APK('videoRecordingResult')) return;
-    showResult('videoRecordingResult', '🤳 正在启动前置相机...');
-    document.getElementById('videoRecordingPlayback').style.display = 'none';
-    Web2APK.startVideoRecording(0, 'medium', 'front');
-}
-
-function startVideoRecording30s() {
-    if (!checkWeb2APK('videoRecordingResult')) return;
-    showResult('videoRecordingResult', '⏱️ 正在启动相机（限时30秒）...');
-    document.getElementById('videoRecordingPlayback').style.display = 'none';
-    Web2APK.startVideoRecording(30, 'high', 'back');
+    Web2APK.startVideoRecording();
 }
 
 // 视频录制完成回调
