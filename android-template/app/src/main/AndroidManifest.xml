@@ -49,12 +49,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- 前台服务类型权限（Android 14+），使用 MEDIA_PLAYBACK 覆盖音乐/视频等场景 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- 安装 APK 权限（Android 8.0+） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
+        android:name=".WebAPKApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"

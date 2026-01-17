@@ -106,6 +106,38 @@ class MainActivity : AppCompatActivity() {
     private var videoRecordFile: File? = null
     private var videoRecordStartTime: Long = 0
 
+    // 应用更新相关
+    private var updateDownloadId: Long = -1
+    private var updateApkFile: File? = null
+
+    // 下载完成广播接收器
+    private val downloadCompleteReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) ?: -1
+            if (id == updateDownloadId && updateDownloadId != -1L) {
+                val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val query = DownloadManager.Query().setFilterById(id)
+                val cursor = dm.query(query)
+                if (cursor.moveToFirst()) {
+                    val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                    val status = cursor.getInt(statusIndex)
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                        webView.evaluateJavascript(
+                            "if(typeof onUpdateDownloaded==='function'){onUpdateDownloaded()}",
+                            null
+                        )
+                    } else {
+                        webView.evaluateJavascript(
+                            "if(typeof onUpdateError==='function'){onUpdateError('下载失败')}",
+                            null
+                        )
+                    }
+                }
+                cursor.close()
+            }
+        }
+    }
+
     // 网络状态监听
     private val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) {
@@ -432,6 +464,12 @@ class MainActivity : AppCompatActivity() {
             // 设置 User-Agent（附加 Web2APK 标识）
             val defaultUA = userAgentString.replace("; wv", "")
             userAgentString = "$defaultUA Web2APK/1.0"
+
+            // 字体缩放：跟随系统字体大小设置
+            if (resources.getBoolean(R.bool.follow_system_font_scale)) {
+                val fontScale = resources.configuration.fontScale
+                textZoom = (fontScale * 100).toInt()
+            }
         }
 
         // 设置下载监听器
@@ -1026,6 +1064,13 @@ class MainActivity : AppCompatActivity() {
             val request = android.net.NetworkRequest.Builder().build()
             cm.registerNetworkCallback(request, networkCallback)
         }
+
+        // 注册下载完成广播接收器
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(downloadCompleteReceiver, android.content.IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(downloadCompleteReceiver, android.content.IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        }
     }
 
     override fun onPause() {
@@ -1052,6 +1097,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        try { unregisterReceiver(downloadCompleteReceiver) } catch (e: Exception) {}
         webView.destroy()
         super.onDestroy()
     }
@@ -2188,6 +2234,181 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
             }
+        }
+
+        // ==================== 应用更新接口 ====================
+
+        /**
+         * 获取当前应用版本信息
+         * @return JSON: {"versionName": "1.0.0", "versionCode": 1}
+         */
+        @android.webkit.JavascriptInterface
+        fun getAppVersion(): String {
+            return try {
+                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                val versionName = packageInfo.versionName ?: "1.0.0"
+                val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.versionCode.toLong()
+                }
+                """{"versionName":"$versionName","versionCode":$versionCode}"""
+            } catch (e: Exception) {
+                """{"versionName":"1.0.0","versionCode":1}"""
+            }
+        }
+
+        /**
+         * 检查是否有安装未知应用权限（Android 8.0+）
+         * @return true=已有权限，false=需要用户手动授权
+         */
+        @android.webkit.JavascriptInterface
+        fun canInstallPackages(): Boolean {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.packageManager.canRequestPackageInstalls()
+            } else {
+                true // Android 8.0 以下不需要这个权限
+            }
+        }
+
+        /**
+         * 打开安装未知应用权限设置页面（Android 8.0+）
+         */
+        @android.webkit.JavascriptInterface
+        fun requestInstallPermission() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                this@MainActivity.runOnUiThread {
+                    try {
+                        val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                        intent.data = Uri.parse("package:${context.packageName}")
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        /**
+         * 下载更新 APK
+         * @param url APK 下载地址
+         * @param title 通知栏标题（可选，默认"正在下载更新"）
+         * 下载完成后回调 onUpdateDownloaded()
+         * 下载失败回调 onUpdateError(message)
+         */
+        @android.webkit.JavascriptInterface
+        fun downloadUpdate(url: String, title: String?) {
+            this@MainActivity.runOnUiThread {
+                try {
+                    // 创建下载目录
+                    val downloadDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "update")
+                    if (!downloadDir.exists()) downloadDir.mkdirs()
+
+                    // 设置文件名
+                    val fileName = "update_${System.currentTimeMillis()}.apk"
+                    updateApkFile = File(downloadDir, fileName)
+
+                    // 配置下载请求
+                    val request = DownloadManager.Request(Uri.parse(url))
+                        .setTitle(title ?: "正在下载更新")
+                        .setDescription(context.getString(R.string.app_name))
+                        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                        .setDestinationUri(Uri.fromFile(updateApkFile))
+                        .setAllowedOverMetered(true)
+                        .setAllowedOverRoaming(true)
+
+                    // 开始下载
+                    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                    updateDownloadId = dm.enqueue(request)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    val errorMessage = e.message?.replace("'", "\\'") ?: "下载失败"
+                    webView.evaluateJavascript(
+                        "if(typeof onUpdateError==='function'){onUpdateError('$errorMessage')}",
+                        null
+                    )
+                }
+            }
+        }
+
+        /**
+         * 安装已下载的更新 APK
+         * 需要先调用 downloadUpdate() 下载完成
+         */
+        @android.webkit.JavascriptInterface
+        fun installUpdate() {
+            this@MainActivity.runOnUiThread {
+                try {
+                    if (updateApkFile == null || !updateApkFile!!.exists()) {
+                        webView.evaluateJavascript(
+                            "if(typeof onUpdateError==='function'){onUpdateError('APK 文件不存在，请先下载')}",
+                            null
+                        )
+                        return@runOnUiThread
+                    }
+
+                    // Android 8.0+ 需要检查安装权限
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        if (!context.packageManager.canRequestPackageInstalls()) {
+                            webView.evaluateJavascript(
+                                "if(typeof onUpdateError==='function'){onUpdateError('请先授权安装权限')}",
+                                null
+                            )
+                            return@runOnUiThread
+                        }
+                    }
+
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    val apkUri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        updateApkFile!!
+                    )
+                    intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    val errorMessage = e.message?.replace("'", "\\'") ?: "安装失败"
+                    webView.evaluateJavascript(
+                        "if(typeof onUpdateError==='function'){onUpdateError('$errorMessage')}",
+                        null
+                    )
+                }
+            }
+        }
+
+        // ==================== 字体缩放接口 ====================
+
+        /**
+         * 获取当前字体缩放比例
+         * @return 百分比值，100=默认大小
+         */
+        @android.webkit.JavascriptInterface
+        fun getTextZoom(): Int {
+            return webView.settings.textZoom
+        }
+
+        /**
+         * 设置字体缩放比例
+         * @param percent 百分比值，100=默认大小，推荐范围 50-200
+         */
+        @android.webkit.JavascriptInterface
+        fun setTextZoom(percent: Int) {
+            this@MainActivity.runOnUiThread {
+                webView.settings.textZoom = percent.coerceIn(50, 200)
+            }
+        }
+
+        /**
+         * 获取系统字体缩放比例
+         * @return 百分比值，100=默认大小
+         */
+        @android.webkit.JavascriptInterface
+        fun getSystemFontScale(): Int {
+            return (context.resources.configuration.fontScale * 100).toInt()
         }
 
         // ==================== FCM 推送 ====================

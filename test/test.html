@@ -241,6 +241,36 @@
             <div class="hint" id="rateResult">点击按钮跳转到应用商店评分页面</div>
         </div>
 
+        <!-- 应用更新 -->
+        <div class="card" id="card-update">
+            <h2>🔄 应用内更新</h2>
+            <div class="btn-group">
+                <button class="btn btn-doc" onclick="checkAppVersion()">📦 查看版本</button>
+                <button class="btn btn-file" onclick="checkInstallPermission()">🔐 检查权限</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-camera" onclick="requestInstallPermission()">📝 授权安装</button>
+                <button class="btn btn-download" onclick="testDownloadUpdate()">⏬ 下载更新</button>
+                <button class="btn btn-wechat" onclick="testInstallUpdate()">📲 安装更新</button>
+            </div>
+            <div class="hint" id="updateResult">网页控制更新流程：获取版本→服务器比对→下载→安装</div>
+        </div>
+
+        <!-- 字体缩放 -->
+        <div class="card" id="card-font">
+            <h2>🔤 字体缩放</h2>
+            <div class="btn-group">
+                <button class="btn btn-doc" onclick="getTextZoom()">📏 查看当前缩放</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn" style="background:#888" onclick="setTextZoom(75)">75%</button>
+                <button class="btn btn-download" onclick="setTextZoom(100)">100%</button>
+                <button class="btn btn-camera" onclick="setTextZoom(125)">125%</button>
+                <button class="btn btn-file" onclick="setTextZoom(150)">150%</button>
+            </div>
+            <div class="hint" id="fontResult">默认跟随系统字体大小设置</div>
+        </div>
+
         <!-- 位置 -->
         <div class="card" id="card-location">
             <h2>📍 位置权限测试</h2>

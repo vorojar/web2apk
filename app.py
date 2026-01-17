@@ -246,11 +246,13 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
 '''
         colors_path.write_text(colors_content, encoding='utf-8')
 
-        # 修改 bools.xml (下拉刷新开关)
+        # 修改 bools.xml (功能开关)
         bools_path = build_dir / 'app' / 'src' / 'main' / 'res' / 'values' / 'bools.xml'
         bools_content = f'''<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <bool name="pull_to_refresh_enabled">{'true' if pull_to_refresh else 'false'}</bool>
+    <bool name="follow_system_font_scale">true</bool>
+    <bool name="webview_preload">true</bool>
 </resources>
 '''
         bools_path.write_text(bools_content, encoding='utf-8')

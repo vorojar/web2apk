@@ -529,6 +529,72 @@ function testOpenPlayStore() {
     showResult('rateResult', '⭐ 正在跳转到 Google Play...');
 }
 
+// ==================== 应用更新 ====================
+
+function checkAppVersion() {
+    if (!checkWeb2APK('updateResult')) return;
+    try {
+        const info = JSON.parse(Web2APK.getAppVersion());
+        showResult('updateResult', `📦 当前版本: ${info.versionName} (${info.versionCode})`);
+    } catch (e) {
+        showResult('updateResult', '❌ 获取版本失败: ' + e.message, false);
+    }
+}
+
+function checkInstallPermission() {
+    if (!checkWeb2APK('updateResult')) return;
+    const canInstall = Web2APK.canInstallPackages();
+    if (canInstall) {
+        showResult('updateResult', '✅ 已有安装权限');
+    } else {
+        showResult('updateResult', '⚠️ 未授权安装权限，点击下方按钮授权', false);
+    }
+}
+
+function requestInstallPermission() {
+    if (!checkWeb2APK('updateResult')) return;
+    Web2APK.requestInstallPermission();
+    showResult('updateResult', '📝 正在跳转设置页面，请授权后返回');
+}
+
+function testDownloadUpdate() {
+    if (!checkWeb2APK('updateResult')) return;
+    // 使用一个小的测试 APK
+    const testApkUrl = 'https://maikami.com/web2apk/test.apk';
+    showResult('updateResult', '⏬ 开始下载更新...');
+    Web2APK.downloadUpdate(testApkUrl, '正在下载更新');
+}
+
+function testInstallUpdate() {
+    if (!checkWeb2APK('updateResult')) return;
+    Web2APK.installUpdate();
+}
+
+// 更新下载完成回调
+function onUpdateDownloaded() {
+    showResult('updateResult', '✅ 下载完成，点击"安装更新"按钮安装');
+}
+
+// 更新错误回调
+function onUpdateError(message) {
+    showResult('updateResult', '❌ 更新失败: ' + message, false);
+}
+
+// ==================== 字体缩放 ====================
+
+function getTextZoom() {
+    if (!checkWeb2APK('fontResult')) return;
+    const zoom = Web2APK.getTextZoom();
+    const systemScale = Web2APK.getSystemFontScale();
+    showResult('fontResult', `📏 当前缩放: ${zoom}%\n📱 系统设置: ${systemScale}%`);
+}
+
+function setTextZoom(percent) {
+    if (!checkWeb2APK('fontResult')) return;
+    Web2APK.setTextZoom(percent);
+    showResult('fontResult', `✅ 已设置字体缩放为 ${percent}%`);
+}
+
 // ==================== 图片预览 ====================
 
 function testPreviewSingle() {
