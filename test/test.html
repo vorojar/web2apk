@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>WebAPK 功能测试</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:,">
+    <script src="https://cdnyy.yiqizuoti.com/mp_assets/tailwindcss.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -22,7 +23,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+    <link rel="stylesheet" href="assets/plyr/plyr.css">
     <style>
         /* 隐藏文件输入 */
         input[type="file"] {
@@ -70,13 +71,53 @@
                         <div class="font-medium text-blue-600" id="timeInit">--</div>
                         <div class="text-blue-400">初始化</div>
                     </div>
-                    <div class="flex-1 bg-green-100 rounded-lg p-2 text-center">
+                    <div class="flex-1 bg-green-100 rounded-lg p-2 text-center cursor-pointer hover:bg-green-200 transition-colors"
+                        onclick="toggleNetworkDetail()">
                         <div class="font-medium text-green-600" id="timeNetwork">--</div>
-                        <div class="text-green-400">网络</div>
+                        <div class="text-green-400">网络 ▼</div>
                     </div>
                     <div class="flex-1 bg-purple-100 rounded-lg p-2 text-center">
                         <div class="font-medium text-purple-600" id="timeRender">--</div>
                         <div class="text-purple-400">渲染</div>
+                    </div>
+                </div>
+                <!-- 网络详情面板 -->
+                <div id="networkDetailPanel" class="hidden mt-3 bg-green-50 rounded-xl p-3 text-xs">
+                    <!-- 主文档时间线 -->
+                    <div class="mb-3">
+                        <div class="font-medium text-green-700 mb-2">📄 主文档</div>
+                        <div class="grid grid-cols-4 gap-2 text-center">
+                            <div class="bg-white rounded-lg p-2">
+                                <div class="font-medium text-green-600" id="timeDNS">--</div>
+                                <div class="text-green-400">DNS</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-2">
+                                <div class="font-medium text-green-600" id="timeTCP">--</div>
+                                <div class="text-green-400">TCP</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-2">
+                                <div class="font-medium text-green-600" id="timeTTFB">--</div>
+                                <div class="text-green-400">TTFB</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-2">
+                                <div class="font-medium text-green-600" id="timeDownload">--</div>
+                                <div class="text-green-400">下载</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 资源统计 -->
+                    <div class="mb-3">
+                        <div class="font-medium text-green-700 mb-2">📊 资源统计</div>
+                        <div class="bg-white rounded-lg p-2" id="resourceStats">
+                            <div class="text-charcoal/50">加载中...</div>
+                        </div>
+                    </div>
+                    <!-- 最慢资源 -->
+                    <div>
+                        <div class="font-medium text-green-700 mb-2">🐢 最慢资源 Top 5</div>
+                        <div class="bg-white rounded-lg p-2 space-y-2" id="slowestResources">
+                            <div class="text-charcoal/50">加载中...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -255,10 +296,11 @@
                     <span class="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">🎬</span>
                     视频全屏播放
                 </h3>
-                <video id="player" playsinline controls class="w-full rounded-xl">
-                    <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4"
-                        type="video/mp4">
-                </video>
+                <div id="videoPlayerContainer">
+                    <div class="w-full h-48 bg-warm-gray rounded-xl flex items-center justify-center text-charcoal/50">
+                        <span>切换到此标签后加载视频...</span>
+                    </div>
+                </div>
                 <div class="text-sm text-charcoal/60 mt-2">点击全屏按钮测试全屏功能</div>
             </div>
 
@@ -273,9 +315,7 @@
                     <button onclick="stopBackgroundAudio()" class="btn-danger">⏹️ 停止</button>
                 </div>
                 <div id="bgAudioResult" class="text-sm text-charcoal/60">切换到后台后音乐应继续播放</div>
-                <audio id="bgAudioPlayer" loop>
-                    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-                </audio>
+                <div id="bgAudioContainer"></div>
             </div>
 
             <!-- 文件上传 -->
@@ -595,10 +635,11 @@
         }
     </style>
 
-    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-    <script src="scripts.js?v=2.0.0"></script>
+    <script src="assets/plyr/plyr.js"></script>
+    <script src="scripts.js?v=2.0.1"></script>
     <script>
         // Tab 切换
+        let mediaLoaded = false;
         function switchTab(tabName) {
             // 隐藏所有内容
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -613,6 +654,123 @@
             const activeTab = document.getElementById('tab-' + tabName);
             activeTab.classList.remove('bg-warm-gray', 'text-charcoal/70');
             activeTab.classList.add('bg-accent', 'text-white');
+
+            // 切换到媒体 Tab 时加载媒体资源
+            if (tabName === 'media' && !mediaLoaded) {
+                loadMediaResources();
+                mediaLoaded = true;
+            }
+        }
+
+        // 延迟加载媒体资源
+        function loadMediaResources() {
+            // 加载视频播放器
+            const videoContainer = document.getElementById('videoPlayerContainer');
+            if (videoContainer) {
+                videoContainer.innerHTML = `
+                    <video id="player" playsinline controls class="w-full rounded-xl">
+                        <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4" type="video/mp4">
+                    </video>
+                `;
+                // 初始化 Plyr
+                if (typeof Plyr !== 'undefined') {
+                    new Plyr('#player', {
+                        controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen']
+                    });
+                }
+            }
+
+            // 加载背景音频
+            const audioContainer = document.getElementById('bgAudioContainer');
+            if (audioContainer) {
+                audioContainer.innerHTML = `
+                    <audio id="bgAudioPlayer" loop>
+                        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+                    </audio>
+                `;
+            }
+        }
+
+        // 网络详情面板
+        let networkDetailLoaded = false;
+        function toggleNetworkDetail() {
+            const panel = document.getElementById('networkDetailPanel');
+            const isHidden = panel.classList.contains('hidden');
+
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                if (!networkDetailLoaded) {
+                    loadNetworkDetail();
+                    networkDetailLoaded = true;
+                }
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function loadNetworkDetail() {
+            // 主文档时间线 (Navigation Timing)
+            if (performance.timing) {
+                const t = performance.timing;
+                const dns = t.domainLookupEnd - t.domainLookupStart;
+                const tcp = t.connectEnd - t.connectStart;
+                const ttfb = t.responseStart - t.requestStart;
+                const download = t.responseEnd - t.responseStart;
+
+                document.getElementById('timeDNS').textContent = dns + 'ms';
+                document.getElementById('timeTCP').textContent = tcp + 'ms';
+                document.getElementById('timeTTFB').textContent = ttfb + 'ms';
+                document.getElementById('timeDownload').textContent = download + 'ms';
+            }
+
+            // 资源统计
+            const resources = performance.getEntriesByType('resource');
+            const stats = { script: 0, css: 0, img: 0, font: 0, fetch: 0, other: 0 };
+            const sizes = { script: 0, css: 0, img: 0, font: 0, fetch: 0, other: 0 };
+
+            resources.forEach(r => {
+                const type = r.initiatorType;
+                if (type === 'script') { stats.script++; sizes.script += r.transferSize || 0; }
+                else if (type === 'css' || type === 'link') { stats.css++; sizes.css += r.transferSize || 0; }
+                else if (type === 'img') { stats.img++; sizes.img += r.transferSize || 0; }
+                else if (type === 'font' || r.name.match(/\.(woff2?|ttf|otf|eot)$/i)) { stats.font++; sizes.font += r.transferSize || 0; }
+                else if (type === 'fetch' || type === 'xmlhttprequest') { stats.fetch++; sizes.fetch += r.transferSize || 0; }
+                else { stats.other++; sizes.other += r.transferSize || 0; }
+            });
+
+            const formatSize = (bytes) => bytes > 1024 ? (bytes / 1024).toFixed(1) + 'KB' : bytes + 'B';
+            const statsHtml = `
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div><span class="text-charcoal/70">JS</span> <span class="font-medium">${stats.script}</span></div>
+                    <div><span class="text-charcoal/70">CSS</span> <span class="font-medium">${stats.css}</span></div>
+                    <div><span class="text-charcoal/70">图片</span> <span class="font-medium">${stats.img}</span></div>
+                    <div><span class="text-charcoal/70">字体</span> <span class="font-medium">${stats.font}</span></div>
+                    <div><span class="text-charcoal/70">XHR</span> <span class="font-medium">${stats.fetch}</span></div>
+                    <div><span class="text-charcoal/70">其他</span> <span class="font-medium">${stats.other}</span></div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-green-200 text-center">
+                    <span class="text-charcoal/70">共 ${resources.length} 个资源</span>
+                </div>
+            `;
+            document.getElementById('resourceStats').innerHTML = statsHtml;
+
+            // 最慢资源 Top 5
+            const sorted = [...resources].sort((a, b) => b.duration - a.duration).slice(0, 5);
+            if (sorted.length === 0) {
+                document.getElementById('slowestResources').innerHTML = '<div class="text-charcoal/50">无资源数据</div>';
+            } else {
+                const slowHtml = sorted.map((r, i) => {
+                    const name = r.name.split('/').pop().split('?')[0] || r.name;
+                    const shortName = name.length > 25 ? name.substring(0, 22) + '...' : name;
+                    return `
+                        <div class="flex items-center justify-between">
+                            <span class="text-charcoal/70 truncate flex-1 mr-2" title="${r.name}">${i + 1}. ${shortName}</span>
+                            <span class="font-medium text-green-600 flex-shrink-0">${Math.round(r.duration)}ms</span>
+                        </div>
+                    `;
+                }).join('');
+                document.getElementById('slowestResources').innerHTML = slowHtml;
+            }
         }
 
         // 图片预览显示处理
@@ -663,12 +821,6 @@
             if (imageInput) imageInput.addEventListener('change', function () { handleFile(this, 'image'); });
             if (videoInput) videoInput.addEventListener('change', function () { handleFile(this, 'video'); });
             if (fileInput) fileInput.addEventListener('change', function () { handleFile(this, 'auto'); });
-
-            // 初始化 Plyr 播放器
-            if (typeof Plyr !== 'undefined') {
-                const player = document.getElementById('player');
-                if (player) new Plyr(player);
-            }
 
             // 更新小组件
             if (typeof Web2APK !== 'undefined') {
