@@ -199,6 +199,7 @@ MIT License
 - 新增：应用内更新 - 网页可获取版本、下载 APK、触发安装
 - 新增：字体缩放适配 - 默认跟随系统字体大小，支持 JS 动态调整
 - 新增：WebView 预热 - 启动时预加载引擎，加快首屏速度
+- 新增：启动耗时统计 - `getLoadTiming()` 获取 APP 启动到页面加载各阶段耗时
 
 ### v1.6.0
 - 新增：FCM 推送（Firebase Cloud Messaging）- 海外远程推送
