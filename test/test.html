@@ -92,10 +92,10 @@
                     设备信息
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testDeviceInfo()" class="btn-primary">📋 设备信息</button>
-                    <button onclick="testDeviceId()" class="btn-secondary">🔑 设备ID</button>
-                    <button onclick="getAppVersion()" class="btn-secondary">📦 APP版本</button>
-                    <button onclick="showUA()" class="btn-secondary">🔍 UA</button>
+                    <button onclick="testDeviceInfo()" class="btn-secondary">设备信息</button>
+                    <button onclick="testDeviceId()" class="btn-secondary">设备ID</button>
+                    <button onclick="getAppVersion()" class="btn-secondary">APP版本</button>
+                    <button onclick="showUA()" class="btn-secondary">UA</button>
                 </div>
                 <div id="deviceInfoResult" class="text-sm text-charcoal/60 whitespace-pre-line break-all">点击按钮获取设备信息
                 </div>
@@ -108,8 +108,8 @@
                     电话 / 短信
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testDialPhone()" class="btn-primary">📞 拨打 10086</button>
-                    <button onclick="testSendSMS()" class="btn-secondary">💬 发短信</button>
+                    <button onclick="testDialPhone()" class="btn-secondary">拨打 10086</button>
+                    <button onclick="testSendSMS()" class="btn-secondary">发短信</button>
                 </div>
                 <div id="phoneResult" class="text-sm text-charcoal/60">点击按钮测试电话/短信功能</div>
             </div>
@@ -121,8 +121,8 @@
                     屏幕常亮 & 振动
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="toggleScreenOn()" class="btn-primary">💡 切换屏幕常亮</button>
-                    <button onclick="testVibrate()" class="btn-secondary">📳 振动反馈</button>
+                    <button onclick="toggleScreenOn()" class="btn-secondary">切换屏幕常亮</button>
+                    <button onclick="testVibrate()" class="btn-secondary">振动反馈</button>
                 </div>
                 <div id="deviceResult" class="text-sm text-charcoal/60">点击按钮测试设备控制</div>
             </div>
@@ -134,7 +134,7 @@
                     位置权限
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="getLocation()" class="btn-primary">📍 获取当前位置</button>
+                    <button onclick="getLocation()" class="btn-secondary">获取当前位置</button>
                 </div>
                 <div id="locationResult" class="text-sm text-charcoal/60 whitespace-pre-line">点击按钮获取 GPS 位置</div>
             </div>
@@ -146,7 +146,7 @@
                     生物识别
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testBiometric()" class="btn-primary">🔐 指纹/面容验证</button>
+                    <button onclick="testBiometric()" class="btn-secondary">指纹/面容验证</button>
                 </div>
                 <div id="biometricResult" class="text-sm text-charcoal/60">点击按钮测试生物识别</div>
             </div>
@@ -158,8 +158,8 @@
                     剪贴板
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testCopyClipboard()" class="btn-primary">📋 复制测试文字</button>
-                    <button onclick="testReadClipboard()" class="btn-secondary">📖 读取剪贴板</button>
+                    <button onclick="testCopyClipboard()" class="btn-secondary">复制测试文字</button>
+                    <button onclick="testReadClipboard()" class="btn-secondary">读取剪贴板</button>
                 </div>
                 <div id="clipboardResult" class="text-sm text-charcoal/60">点击按钮测试剪贴板功能</div>
             </div>
@@ -174,7 +174,7 @@
                     JS 相机（非表单）
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testTakePhoto()" class="btn-primary">📷 拍照获取图片</button>
+                    <button onclick="testTakePhoto()" class="btn-secondary">拍照获取图片</button>
                 </div>
                 <div id="jsCameraResult" class="text-sm text-charcoal/60">拍照后图片将显示在下方</div>
                 <div id="jsCameraPreview" class="mt-3 hidden">
@@ -189,12 +189,12 @@
                     录音
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button id="btnStartRecord" onclick="startRecording()" class="btn-primary">🎤 开始录音</button>
-                    <button id="btnStopRecord" onclick="stopRecording()" class="btn-secondary" disabled>⏹️ 停止</button>
-                    <button id="btnCancelRecord" onclick="cancelRecording()" class="btn-danger" disabled>❌ 取消</button>
+                    <button id="btnStartRecord" onclick="startRecording()" class="btn-secondary">开始录音</button>
+                    <button id="btnStopRecord" onclick="stopRecording()" class="btn-secondary" disabled>停止</button>
+                    <button id="btnCancelRecord" onclick="cancelRecording()" class="btn-danger" disabled>取消</button>
                 </div>
                 <div id="recordingResult" class="text-sm text-charcoal/60">点击按钮测试录音功能</div>
-                <div id="recordingTimer" class="text-2xl font-mono text-red-500 hidden">⏱️ 00:00</div>
+                <div id="recordingTimer" class="text-2xl font-mono text-red-500 hidden">00:00</div>
                 <audio id="recordingPlayback" controls class="w-full mt-3 hidden"></audio>
             </div>
 
@@ -205,7 +205,7 @@
                     视频录制
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="startVideoRecording()" class="btn-primary">📹 录制视频</button>
+                    <button onclick="startVideoRecording()" class="btn-secondary">录制视频</button>
                 </div>
                 <div id="videoRecordingResult" class="text-sm text-charcoal/60">调用系统相机录制视频</div>
                 <video id="videoRecordingPlayback" controls class="w-full mt-3 rounded-xl hidden"></video>
@@ -218,8 +218,8 @@
                     图片预览
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testPreviewSingle()" class="btn-primary">🖼️ 单张预览</button>
-                    <button onclick="testPreviewMultiple()" class="btn-secondary">📚 多图预览</button>
+                    <button onclick="testPreviewSingle()" class="btn-secondary">单张预览</button>
+                    <button onclick="testPreviewMultiple()" class="btn-secondary">多图预览</button>
                 </div>
                 <div id="imagePreviewResult" class="text-sm text-charcoal/60">原生图片预览（支持缩放、保存、分享）</div>
             </div>
@@ -244,7 +244,7 @@
                     后台音频播放
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="startBackgroundAudio()" class="btn-primary">▶️ 播放音乐</button>
+                    <button onclick="startBackgroundAudio()" class="btn-secondary">▶️ 播放音乐</button>
                     <button onclick="stopBackgroundAudio()" class="btn-danger">⏹️ 停止</button>
                 </div>
                 <div id="bgAudioResult" class="text-sm text-charcoal/60">切换到后台后音乐应继续播放</div>
@@ -260,8 +260,8 @@
                     文件上传
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <label class="btn-primary cursor-pointer">📷 拍照<input type="file" accept="image/*" capture="camera"
-                            id="cameraInput"></label>
+                    <label class="btn-secondary cursor-pointer">📷 拍照<input type="file" accept="image/*"
+                            capture="camera" id="cameraInput"></label>
                     <label class="btn-secondary cursor-pointer">🖼️ 相册<input type="file" accept="image/*"
                             id="imageInput"></label>
                     <label class="btn-secondary cursor-pointer">🎬 视频<input type="file" accept="video/*"
@@ -282,7 +282,7 @@
                 </h3>
                 <div class="flex flex-wrap gap-2">
                     <a href="https://kanban.ehafo.com/article_attachment/1823_1763618663702_0/PRD%E8%A7%84%E8%8C%83.pdf"
-                        class="btn-primary">📄 PDF</a>
+                        class="btn-secondary">📄 PDF</a>
                     <a href="https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip"
                         class="btn-secondary">📦 ZIP</a>
                     <a href="https://calibre-ebook.com/downloads/demos/demo.docx" class="btn-secondary">📝 Word</a>
@@ -318,11 +318,11 @@
                     字体缩放
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="getTextZoom()" class="btn-primary">📏 查看缩放</button>
+                    <button onclick="getTextZoom()" class="btn-secondary">📏 查看缩放</button>
                 </div>
                 <div class="flex flex-wrap gap-2 mb-3">
                     <button onclick="setTextZoom(75)" class="btn-secondary text-xs">75%</button>
-                    <button onclick="setTextZoom(100)" class="btn-primary">100%</button>
+                    <button onclick="setTextZoom(100)" class="btn-secondary">100%</button>
                     <button onclick="setTextZoom(125)" class="btn-secondary">125%</button>
                     <button onclick="setTextZoom(150)" class="btn-secondary">150%</button>
                 </div>
@@ -336,7 +336,7 @@
                     JS 弹窗
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testAlert()" class="btn-primary">ℹ️ alert()</button>
+                    <button onclick="testAlert()" class="btn-secondary">ℹ️ alert()</button>
                     <button onclick="testConfirm()" class="btn-secondary">❓ confirm()</button>
                     <button onclick="testPrompt()" class="btn-secondary">✏️ prompt()</button>
                 </div>
@@ -350,7 +350,7 @@
                     防截屏
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="enableSecureMode()" class="btn-primary">🔒 开启防截屏</button>
+                    <button onclick="enableSecureMode()" class="btn-secondary">🔒 开启防截屏</button>
                     <button onclick="disableSecureMode()" class="btn-danger">🔓 关闭防截屏</button>
                 </div>
                 <div id="secureResult" class="text-sm text-charcoal/60">开启后尝试截屏，截图将显示黑屏</div>
@@ -363,7 +363,7 @@
                     缓存清理
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="clearCache()" class="btn-primary">🗑️ 清理缓存</button>
+                    <button onclick="clearCache()" class="btn-secondary">🗑️ 清理缓存</button>
                 </div>
                 <div id="cacheResult" class="text-sm text-charcoal/60">点击按钮清理 WebView 缓存</div>
             </div>
@@ -378,7 +378,7 @@
                     网络状态
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="checkNetwork()" class="btn-primary">🔍 查询网络状态</button>
+                    <button onclick="checkNetwork()" class="btn-secondary">🔍 查询网络状态</button>
                 </div>
                 <div id="networkResult" class="text-sm text-charcoal/60">网络状态会实时更新</div>
             </div>
@@ -390,7 +390,7 @@
                     本地通知
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="sendNotification()" class="btn-primary">📩 立即通知</button>
+                    <button onclick="sendNotification()" class="btn-secondary">📩 立即通知</button>
                     <button onclick="scheduleNotification()" class="btn-secondary">⏰ 5秒后提醒</button>
                 </div>
                 <div id="notifyResult" class="text-sm text-charcoal/60">点击按钮测试通知功能</div>
@@ -403,7 +403,7 @@
                     前台服务（保活）
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="startFgService()" class="btn-primary">▶️ 启动</button>
+                    <button onclick="startFgService()" class="btn-secondary">▶️ 启动</button>
                     <button onclick="updateFgNotification()" class="btn-secondary">🔄 更新通知</button>
                     <button onclick="stopFgService()" class="btn-danger">⏹️ 停止</button>
                 </div>
@@ -420,7 +420,7 @@
                     扫码
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="scanQRCode()" class="btn-primary">🔍 扫描二维码</button>
+                    <button onclick="scanQRCode()" class="btn-secondary">🔍 扫描二维码</button>
                 </div>
                 <div id="scanResult" class="text-sm text-charcoal/60">点击按钮开始扫码</div>
             </div>
@@ -432,7 +432,7 @@
                     系统分享
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testShare()" class="btn-primary">📤 分享到...</button>
+                    <button onclick="testShare()" class="btn-secondary">📤 分享到...</button>
                 </div>
                 <div id="shareResult" class="text-sm text-charcoal/60">点击按钮测试分享功能</div>
             </div>
@@ -444,7 +444,7 @@
                     桌面小组件
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testUpdateWidget()" class="btn-primary">🔄 更新内容</button>
+                    <button onclick="testUpdateWidget()" class="btn-secondary">🔄 更新内容</button>
                     <button onclick="testPinWidget()" class="btn-secondary">📌 添加到桌面</button>
                 </div>
                 <div id="widgetResult" class="text-sm text-charcoal/60">点击按钮测试桌面小组件</div>
@@ -457,7 +457,7 @@
                     应用评分
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testOpenPlayStore()" class="btn-primary">⭐ 跳转 Google Play</button>
+                    <button onclick="testOpenPlayStore()" class="btn-secondary">⭐ 跳转 Google Play</button>
                 </div>
                 <div id="rateResult" class="text-sm text-charcoal/60">点击按钮跳转到应用商店评分页面</div>
             </div>
@@ -474,8 +474,8 @@
                     <button onclick="requestInstallPermission()" class="btn-secondary">📝 授权</button>
                 </div>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testDownloadUpdate()" class="btn-primary">⏬ 下载更新</button>
-                    <button onclick="testInstallUpdate()" class="btn-primary">📲 安装更新</button>
+                    <button onclick="testDownloadUpdate()" class="btn-secondary">⏬ 下载更新</button>
+                    <button onclick="testInstallUpdate()" class="btn-secondary">📲 安装更新</button>
                 </div>
                 <div id="updateResult" class="text-sm text-charcoal/60">网页控制更新流程</div>
             </div>
@@ -487,7 +487,7 @@
                     第三方登录
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testGoogleLogin()" class="btn-primary">🌐 Google 登录</button>
+                    <button onclick="testGoogleLogin()" class="btn-secondary">🌐 Google 登录</button>
                     <button onclick="loginWechat()" class="btn-secondary opacity-50">💬 微信登录</button>
                 </div>
                 <div id="loginResult" class="text-sm text-charcoal/60">Google 仅海外可用</div>
@@ -500,7 +500,7 @@
                     APP 唤端
                 </h3>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="testOpenTaobao()" class="btn-primary">🛒 淘宝</button>
+                    <button onclick="testOpenTaobao()" class="btn-secondary">🛒 淘宝</button>
                     <button onclick="testOpenWeixin()" class="btn-secondary">💬 微信</button>
                     <button onclick="testOpenMap()" class="btn-secondary">🗺️ 地图导航</button>
                 </div>
@@ -514,7 +514,7 @@
                     外部链接
                 </h3>
                 <div class="flex flex-wrap gap-2">
-                    <a href="https://www.ehafo.com" class="btn-primary">🔍 打开易哈佛</a>
+                    <a href="https://www.ehafo.com" class="btn-secondary">🔍 打开易哈佛</a>
                 </div>
                 <div class="text-sm text-charcoal/60 mt-3">外域链接将在内置浏览器中打开</div>
             </div>
@@ -523,21 +523,38 @@
 
     <!-- 按钮样式 -->
     <style>
-        .btn-primary {
-            @apply px-4 py-2 bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-xl transition-all;
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background-color: #E8E4DE;
+            color: #2D2D2D;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.75rem;
+            transition: all 0.15s;
         }
 
-        .btn-secondary {
-            @apply px-4 py-2 bg-warm-gray hover:bg-cream-dark text-charcoal text-sm font-medium rounded-xl transition-all;
+        .btn-secondary:hover {
+            background-color: #F0EDE8;
         }
 
         .btn-danger {
-            @apply px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-sm font-medium rounded-xl transition-all;
+            padding: 0.5rem 1rem;
+            background-color: #FEE2E2;
+            color: #DC2626;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.75rem;
+            transition: all 0.15s;
         }
 
-        .btn-primary:disabled,
+        .btn-danger:hover {
+            background-color: #FECACA;
+        }
+
+        .btn-secondary:disabled,
         .btn-secondary:disabled {
-            @apply opacity-50 cursor-not-allowed;
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* 图片预览样式 */
