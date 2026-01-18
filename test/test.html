@@ -162,9 +162,25 @@
                     <button onclick="testDeviceId()" class="btn-secondary">设备ID</button>
                     <button onclick="getAppVersion()" class="btn-secondary">APP版本</button>
                     <button onclick="showUA()" class="btn-secondary">UA</button>
+                    <button onclick="testBattery()" class="btn-secondary">🔋 电量</button>
+                    <button onclick="Web2APK.showToast('Hello Toast!')" class="btn-secondary">💬 Toast</button>
                 </div>
                 <div id="deviceInfoResult" class="text-sm text-charcoal/60 whitespace-pre-line break-all">点击按钮获取设备信息
                 </div>
+                <div id="appStateDisplay" class="mt-2 text-sm text-charcoal/60">App状态: <span id="appState">--</span></div>
+            </div>
+
+            <!-- 传感器 -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-warm-gray/30">
+                <h3 class="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                    <span class="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">📡</span>
+                    陀螺仪 / 加速计
+                </h3>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button onclick="Web2APK.startSensor('both')" class="btn-secondary">▶️ 开始</button>
+                    <button onclick="Web2APK.stopSensor()" class="btn-danger">⏹️ 停止</button>
+                </div>
+                <div id="sensorResult" class="text-sm text-charcoal/60 font-mono">点击开始监听传感器数据</div>
             </div>
 
             <!-- 电话/短信 -->

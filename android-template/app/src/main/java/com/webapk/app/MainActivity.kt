@@ -98,6 +98,10 @@ class MainActivity : AppCompatActivity() {
     // 后台音频播放标志
     private var isBackgroundAudioEnabled = false
 
+    // 传感器相关
+    private var sensorManager: android.hardware.SensorManager? = null
+    private var sensorListener: android.hardware.SensorEventListener? = null
+
     // 录音相关
     private lateinit var recordPermissionLauncher: ActivityResultLauncher<String>
     private var mediaRecorder: android.media.MediaRecorder? = null
@@ -1086,9 +1090,14 @@ class MainActivity : AppCompatActivity() {
         } else {
             registerReceiver(downloadCompleteReceiver, android.content.IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
         }
+        // 通知 JS App 进入前台
+        webView.evaluateJavascript("if(typeof onAppStateChange==='function')onAppStateChange('foreground')", null)
     }
 
     override fun onPause() {
+        // 通知 JS App 进入后台
+        webView.evaluateJavascript("if(typeof onAppStateChange==='function')onAppStateChange('background')", null)
+
         // 如果处于画中画模式，继续播放视频，不暂停 WebView
         if (isInPictureInPictureMode) {
             super.onPause()
@@ -2284,6 +2293,70 @@ class MainActivity : AppCompatActivity() {
         @android.webkit.JavascriptInterface
         fun getLoadTiming(): String {
             return """{"appStart":${MainActivity.appStartTime},"webViewInit":${MainActivity.webViewInitTime}}"""
+        }
+
+        /** 显示 Toast 提示 */
+        @android.webkit.JavascriptInterface
+        fun showToast(message: String) { showToastInternal(message, false) }
+        @android.webkit.JavascriptInterface
+        fun showToast(message: String, long: Boolean) { showToastInternal(message, long) }
+        private fun showToastInternal(message: String, long: Boolean) {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(context, message, if (long) android.widget.Toast.LENGTH_LONG else android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        /** 获取电池信息 @return JSON: {level, isCharging} */
+        @android.webkit.JavascriptInterface
+        fun getBatteryInfo(): String {
+            val intent = context.registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+            val level = intent?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1
+            val status = intent?.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1) ?: -1
+            val isCharging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING || status == android.os.BatteryManager.BATTERY_STATUS_FULL
+            return """{"level":$level,"isCharging":$isCharging}"""
+        }
+
+        /** 获取 App 当前状态 @return foreground / background */
+        @android.webkit.JavascriptInterface
+        fun getAppState(): String {
+            return if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) "foreground" else "background"
+        }
+
+        /** 开始监听传感器 @param type: accelerometer / gyroscope / both */
+        @android.webkit.JavascriptInterface
+        fun startSensor(type: String) {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                if (sensorManager == null) {
+                    sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
+                }
+                stopSensor()
+                sensorListener = object : android.hardware.SensorEventListener {
+                    override fun onSensorChanged(event: android.hardware.SensorEvent) {
+                        val t = if (event.sensor.type == android.hardware.Sensor.TYPE_ACCELEROMETER) "accelerometer" else "gyroscope"
+                        val js = "if(typeof onSensorData==='function')onSensorData('$t',${event.values[0]},${event.values[1]},${event.values[2]})"
+                        webView.evaluateJavascript(js, null)
+                    }
+                    override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+                }
+                val sm = sensorManager!!
+                if (type == "accelerometer" || type == "both") {
+                    sm.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER)?.let {
+                        sm.registerListener(sensorListener, it, android.hardware.SensorManager.SENSOR_DELAY_UI)
+                    }
+                }
+                if (type == "gyroscope" || type == "both") {
+                    sm.getDefaultSensor(android.hardware.Sensor.TYPE_GYROSCOPE)?.let {
+                        sm.registerListener(sensorListener, it, android.hardware.SensorManager.SENSOR_DELAY_UI)
+                    }
+                }
+            }
+        }
+
+        /** 停止监听传感器 */
+        @android.webkit.JavascriptInterface
+        fun stopSensor() {
+            sensorListener?.let { sensorManager?.unregisterListener(it) }
+            sensorListener = null
         }
 
         /**

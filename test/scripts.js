@@ -182,6 +182,36 @@ function testDeviceInfo() {
     }
 }
 
+function testBattery() {
+    if (!checkWeb2APK('deviceInfoResult')) return;
+    try {
+        const b = JSON.parse(Web2APK.getBatteryInfo());
+        showResult('deviceInfoResult', `🔋 电量: ${b.level}%\n⚡ 充电中: ${b.isCharging ? '是' : '否'}`);
+    } catch (e) { showResult('deviceInfoResult', '❌ ' + e.message, false); }
+}
+
+function onAppStateChange(state) {
+    const el = document.getElementById('appState');
+    if (el) el.textContent = state === 'foreground' ? '🟢 前台' : '🔴 后台';
+    if (state === 'background' && typeof Web2APK !== 'undefined') {
+        Web2APK.showToast('App 已进入后台');
+    }
+}
+
+function onSensorData(type, x, y, z) {
+    const el = document.getElementById('sensorResult');
+    if (!el) return;
+    const label = type === 'accelerometer' ? '加速计' : '陀螺仪';
+    const line = `${label}: x=${x.toFixed(2)} y=${y.toFixed(2)} z=${z.toFixed(2)}`;
+    el.innerHTML = el.innerHTML.includes(label) ? el.innerHTML.replace(new RegExp(label + '.*'), line) : (el.textContent === '点击开始监听传感器数据' ? line : el.innerHTML + '<br>' + line);
+}
+// 页面加载后主动查询一次状态
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Web2APK !== 'undefined' && Web2APK.getAppState) {
+        onAppStateChange(Web2APK.getAppState());
+    }
+});
+
 function testDeviceId() {
     if (!checkWeb2APK('deviceInfoResult')) return;
     const deviceId = Web2APK.getDeviceId();
