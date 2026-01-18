@@ -430,9 +430,9 @@ def build_apk(app_name, package_name, url, icon_path, existing_keystore=None, sc
                 ""
             )
             
-            # 移除 googleSignInLauncher 注册代码（用正则匹配多行）
+            # 移除 googleSignInLauncher 注册代码（匹配到下一个注释之前）
             main_kt_content = re.sub(
-                r'\n        // Google 登录结果\n        googleSignInLauncher = registerForActivityResult.*?(?=\n    \})',
+                r'\n        // Google 登录结果\n        googleSignInLauncher = registerForActivityResult.*?(?=\n\n        // JS 相机)',
                 '',
                 main_kt_content,
                 flags=re.DOTALL
