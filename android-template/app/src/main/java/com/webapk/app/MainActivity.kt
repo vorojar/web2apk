@@ -44,6 +44,12 @@ import android.content.res.Configuration
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        // 启动耗时统计
+        var appStartTime: Long = 0      // APP 启动时间
+        var webViewInitTime: Long = 0   // WebView 初始化完成时间
+    }
+
     private lateinit var webView: WebView
     private lateinit var progressBar: ProgressBar
     private lateinit var splashScreen: FrameLayout
@@ -162,6 +168,7 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
+        appStartTime = System.currentTimeMillis()
         super.onCreate(savedInstanceState)
         // 透明状态栏，内容延伸到状态栏区域
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -491,6 +498,11 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                // 注入页面加载完成时间到 JS（仅首次）
+                if (isFirstLoad) {
+                    val pageFinishTime = System.currentTimeMillis()
+                    view?.evaluateJavascript("window.__pageFinishTime = $pageFinishTime", null)
+                }
                 progressBar.visibility = View.GONE
                 swipeRefresh.isRefreshing = false
 
@@ -964,6 +976,9 @@ class MainActivity : AppCompatActivity() {
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             handleSharedUrl(intent)
         }
+
+        // 记录 WebView 初始化完成时间
+        webViewInitTime = System.currentTimeMillis()
 
         // 首次加载前检查网络状态，无网络直接显示错误页（避免等待超时）
         if (getNetworkStatus() == "none") {
@@ -2257,6 +2272,18 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 """{"versionName":"1.0.0","versionCode":1}"""
             }
+        }
+
+        /**
+         * 获取启动耗时统计
+         * @return JSON: {appStart, webViewInit}
+         *   - appStart: APP 启动时间戳
+         *   - webViewInit: WebView 初始化完成时间戳
+         * 注意：pageFinish 通过 window.__pageFinishTime 注入，jsReady 由 JS 端用 Date.now() 获取
+         */
+        @android.webkit.JavascriptInterface
+        fun getLoadTiming(): String {
+            return """{"appStart":${MainActivity.appStartTime},"webViewInit":${MainActivity.webViewInitTime}}"""
         }
 
         /**

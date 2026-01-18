@@ -53,8 +53,33 @@
     <header class="fixed top-0 left-0 right-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-warm-gray/50">
         <!-- 标题栏 -->
         <div class="px-4 py-3">
-            <h1 class="text-xl font-bold text-charcoal">WebAPK 功能测试</h1>
-            <p class="text-xs text-charcoal/50">测试所有 JS Bridge 接口</p>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-charcoal">WebAPK 功能测试</h1>
+                    <p class="text-xs text-charcoal/50">测试所有 JS Bridge 接口</p>
+                </div>
+                <div id="loadTimeDisplay" class="text-right hidden">
+                    <div class="text-lg font-bold text-accent" id="totalTime">--</div>
+                    <div class="text-xs text-charcoal/50">启动耗时</div>
+                </div>
+            </div>
+            <!-- 分段耗时 -->
+            <div id="loadTimeDetail" class="mt-2 hidden">
+                <div class="flex gap-1 text-xs">
+                    <div class="flex-1 bg-blue-100 rounded-lg p-2 text-center">
+                        <div class="font-medium text-blue-600" id="timeInit">--</div>
+                        <div class="text-blue-400">初始化</div>
+                    </div>
+                    <div class="flex-1 bg-green-100 rounded-lg p-2 text-center">
+                        <div class="font-medium text-green-600" id="timeNetwork">--</div>
+                        <div class="text-green-400">网络</div>
+                    </div>
+                    <div class="flex-1 bg-purple-100 rounded-lg p-2 text-center">
+                        <div class="font-medium text-purple-600" id="timeRender">--</div>
+                        <div class="text-purple-400">渲染</div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- 分类 Tab -->
         <div class="tabs-container flex gap-2 px-4 pb-3 overflow-x-auto">
@@ -82,7 +107,7 @@
     </header>
 
     <!-- 内容区域 -->
-    <main class="pt-28 pb-8 px-4">
+    <main class="pt-48 pb-8 px-4">
         <!-- ==================== 设备 Tab ==================== -->
         <div id="content-device" class="tab-content space-y-4">
             <!-- 设备信息 -->
@@ -655,6 +680,38 @@
                     }));
                 } catch (e) { }
             }
+        });
+
+        // 页面加载完成后显示启动耗时
+        window.addEventListener('load', function () {
+            // 延迟 50ms 确保 __pageFinishTime 已注入
+            setTimeout(function () {
+                if (typeof Web2APK !== 'undefined' && typeof Web2APK.getLoadTiming === 'function') {
+                    try {
+                        const timing = JSON.parse(Web2APK.getLoadTiming());
+                        const pageFinish = window.__pageFinishTime || 0;
+                        const jsReady = Date.now();
+
+                        // 计算各阶段耗时
+                        const initTime = timing.webViewInit - timing.appStart;  // APP启动 → WebView初始化
+                        const networkTime = pageFinish - timing.webViewInit;    // WebView初始化 → 页面加载完成
+                        const renderTime = jsReady - pageFinish;                // 页面加载完成 → JS就绪
+                        const totalTime = jsReady - timing.appStart;            // 总耗时
+
+                        // 显示总耗时
+                        document.getElementById('totalTime').textContent = totalTime + 'ms';
+                        document.getElementById('loadTimeDisplay').classList.remove('hidden');
+
+                        // 显示分段耗时
+                        document.getElementById('timeInit').textContent = initTime + 'ms';
+                        document.getElementById('timeNetwork').textContent = networkTime + 'ms';
+                        document.getElementById('timeRender').textContent = renderTime + 'ms';
+                        document.getElementById('loadTimeDetail').classList.remove('hidden');
+                    } catch (e) {
+                        console.error('获取启动耗时失败:', e);
+                    }
+                }
+            }, 50);
         });
     </script>
 </body>
